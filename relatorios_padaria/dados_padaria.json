@@ -62,6 +62,20 @@
             "data": "29/08/2025 22:33:12",
             "tipo": "receita",
             "forma_pagamento": "Cart\u00e3o de Cr\u00e9dito"
+        },
+        {
+            "descricao": "Venda Balc\u00e3o",
+            "valor": 75.0,
+            "data": "29/08/2025 23:02:26",
+            "tipo": "receita",
+            "forma_pagamento": "Dinheiro"
+        },
+        {
+            "descricao": "Venda Balc\u00e3o",
+            "valor": 47.0,
+            "data": "29/08/2025 23:05:18",
+            "tipo": "receita",
+            "forma_pagamento": "Dinheiro"
         }
     ],
     "despesas": [
@@ -74,7 +88,7 @@
     ],
     "estoque": {
         "p\u00e3o franc\u00eas": {
-            "quantidade": 100,
+            "quantidade": 40,
             "valor_unitario": 0.5,
             "categoria": "P\u00e3es e doces"
         },
@@ -84,12 +98,12 @@
             "categoria": "P\u00e3es"
         },
         "bolo de chocolate": {
-            "quantidade": 8,
+            "quantidade": 6,
             "valor_unitario": 25.0,
             "categoria": "Doces"
         },
         "torta de lim\u00e3o": {
-            "quantidade": 5,
+            "quantidade": 4,
             "valor_unitario": 30.0,
             "categoria": "Doces"
         },
@@ -99,7 +113,7 @@
             "categoria": "Bebidas"
         },
         "suco de laranja": {
-            "quantidade": 17,
+            "quantidade": 15,
             "valor_unitario": 6.0,
             "categoria": "Bebidas"
         },
