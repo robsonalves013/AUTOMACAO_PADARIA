@@ -55,6 +55,13 @@
             "data": "29/08/2025 22:18:19",
             "tipo": "receita",
             "forma_pagamento": "Ifood"
+        },
+        {
+            "descricao": "Venda de 1 item(s) - Balc\u00e3o",
+            "valor": 405.0,
+            "data": "29/08/2025 22:33:12",
+            "tipo": "receita",
+            "forma_pagamento": "Cart\u00e3o de Cr\u00e9dito"
         }
     ],
     "despesas": [
@@ -87,7 +94,7 @@
             "categoria": "Doces"
         },
         "caf\u00e9 expresso": {
-            "quantidade": 95,
+            "quantidade": 5,
             "valor_unitario": 4.5,
             "categoria": "Bebidas"
         },

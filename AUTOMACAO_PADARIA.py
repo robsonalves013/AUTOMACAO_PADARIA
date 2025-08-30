@@ -206,10 +206,20 @@ def gerenciar_estoque(receitas, despesas, estoque):
             if not estoque:
                 print("O estoque está vazio.")
             else:
-                for produto, dados in estoque.items():
+                for produto, dados in sorted(estoque.items()):
                     valor_unitario_formatado = locale.currency(dados['valor_unitario'], grouping=True)
                     categoria = dados.get('categoria', 'N/A')
-                    print(f"- {NEGRITO}{produto.capitalize()}{RESET} ({categoria}): {dados['quantidade']} unidades ({valor_unitario_formatado} cada)")
+                    
+                    quantidade = dados['quantidade']
+                    
+                    if quantidade <= 10:
+                        cor = VERMELHO
+                        negrito = NEGRITO
+                    else:
+                        cor = ''
+                        negrito = ''
+                    
+                    print(f"{cor}{negrito}- {produto.capitalize()} ({categoria}): {quantidade} unidades ({valor_unitario_formatado} cada){RESET}")
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
         elif escolha == '3':
