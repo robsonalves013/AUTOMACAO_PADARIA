@@ -25,7 +25,7 @@ except locale.Error:
 
 # --- Funções de Interface Gráfica ---
 
-def limpar_tela_gui(frame):
+def limpar_frame(frame):
     """Destrói todos os widgets de um frame para "limpar" a tela."""
     for widget in frame.winfo_children():
         widget.destroy()
@@ -37,96 +37,96 @@ def atualizar_dados():
 
 def mostrar_tela_principal():
     """Cria a janela principal com os botões de menu."""
-    limpar_tela_gui(main_frame)
+    limpar_frame(main_frame)
     
     # Título
-    titulo = tk.Label(main_frame, text="SISTEMA DE GESTÃO PARA PADARIA", font=("Helvetica", 16, "bold"), fg="blue")
-    titulo.pack(pady=20)
+    titulo = tk.Label(main_frame, text="SISTEMA DE GESTÃO PARA PADARIA", font=("Helvetica", 18, "bold"), fg="blue")
+    titulo.pack(pady=40)
     
     # Botões para os menus principais
-    btn_estoque = tk.Button(main_frame, text="Gerenciar Estoque", command=mostrar_tela_estoque)
-    btn_estoque.pack(pady=5, ipadx=50)
+    btn_estoque = tk.Button(main_frame, text="Gerenciar Estoque", font=("Helvetica", 12, "bold"), command=mostrar_tela_estoque)
+    btn_estoque.pack(pady=10, ipadx=60, ipady=10)
 
-    btn_vendas = tk.Button(main_frame, text="Menu de Vendas", command=mostrar_tela_vendas)
-    btn_vendas.pack(pady=5, ipadx=50)
+    btn_vendas = tk.Button(main_frame, text="Menu de Vendas", font=("Helvetica", 12, "bold"), command=mostrar_tela_vendas)
+    btn_vendas.pack(pady=10, ipadx=60, ipady=10)
 
-    btn_fluxo_caixa = tk.Button(main_frame, text="Gerenciar Fluxo de Caixa", command=mostrar_tela_fluxo_caixa)
-    btn_fluxo_caixa.pack(pady=5, ipadx=50)
+    btn_fluxo_caixa = tk.Button(main_frame, text="Gerenciar Fluxo de Caixa", font=("Helvetica", 12, "bold"), command=mostrar_tela_fluxo_caixa)
+    btn_fluxo_caixa.pack(pady=10, ipadx=60, ipady=10)
 
-    btn_relatorios = tk.Button(main_frame, text="Gerar Relatórios", command=mostrar_tela_relatorios)
-    btn_relatorios.pack(pady=5, ipadx=50)
+    btn_relatorios = tk.Button(main_frame, text="Gerar Relatórios", font=("Helvetica", 12, "bold"), command=mostrar_tela_relatorios)
+    btn_relatorios.pack(pady=10, ipadx=60, ipady=10)
     
     # Botão de Sair
-    btn_sair = tk.Button(main_frame, text="Sair", command=janela_principal.destroy, bg="red", fg="white")
-    btn_sair.pack(pady=20, ipadx=50)
+    btn_sair = tk.Button(main_frame, text="Sair", font=("Helvetica", 12, "bold"), command=janela_principal.destroy, bg="red", fg="white")
+    btn_sair.pack(pady=40, ipadx=60, ipady=10)
 
 # --- Telas de Gerenciamento ---
 
 def mostrar_tela_estoque():
-    """Cria a janela para gerenciar o estoque."""
-    limpar_tela_gui(main_frame)
+    """Cria a tela para gerenciar o estoque."""
+    limpar_frame(main_frame)
     
-    tk.Label(main_frame, text="Menu de Estoque", font=("Helvetica", 14, "bold")).pack(pady=10)
+    tk.Label(main_frame, text="Menu de Estoque", font=("Helvetica", 14, "bold")).pack(pady=20)
 
-    btn_ver_estoque = tk.Button(main_frame, text="Ver Estoque Atual", command=ver_estoque_atual_gui)
-    btn_ver_estoque.pack(pady=10)
+    btn_ver_estoque = tk.Button(main_frame, text="Ver Estoque Atual", font=("Helvetica", 12, "bold"), command=ver_estoque_atual_gui)
+    btn_ver_estoque.pack(pady=10, ipadx=50, ipady=5)
 
-    btn_adicionar_produto = tk.Button(main_frame, text="Adicionar Produto", command=mostrar_tela_adicionar_produto)
-    btn_adicionar_produto.pack(pady=10)
+    btn_adicionar_produto = tk.Button(main_frame, text="Adicionar Produto", font=("Helvetica", 12, "bold"), command=mostrar_tela_adicionar_produto)
+    btn_adicionar_produto.pack(pady=10, ipadx=50, ipady=5)
     
-    btn_voltar = tk.Button(main_frame, text="Voltar ao Menu Principal", command=mostrar_tela_principal)
-    btn_voltar.pack(pady=20)
+    btn_voltar = tk.Button(main_frame, text="Voltar ao Menu Principal", font=("Helvetica", 12, "bold"), command=mostrar_tela_principal)
+    btn_voltar.pack(pady=30, ipadx=50, ipady=5)
 
 def mostrar_tela_vendas():
-    """Cria a janela para registrar uma nova venda."""
-    limpar_tela_gui(main_frame)
+    """Cria a tela para registrar uma nova venda."""
+    limpar_frame(main_frame)
     
-    tk.Label(main_frame, text="Menu de Vendas", font=("Helvetica", 14, "bold")).pack(pady=10)
+    tk.Label(main_frame, text="Menu de Vendas", font=("Helvetica", 14, "bold")).pack(pady=20)
 
-    btn_venda_balcao = tk.Button(main_frame, text="Venda no Balcão", command=venda_balcao_gui)
-    btn_venda_balcao.pack(pady=10)
+    btn_venda_balcao = tk.Button(main_frame, text="Venda no Balcão", font=("Helvetica", 12, "bold"), command=venda_balcao_gui)
+    btn_venda_balcao.pack(pady=10, ipadx=50, ipady=5)
 
-    btn_venda_delivery = tk.Button(main_frame, text="Venda por Delivery", command=venda_delivery_gui)
-    btn_venda_delivery.pack(pady=10)
+    btn_venda_delivery = tk.Button(main_frame, text="Venda por Delivery", font=("Helvetica", 12, "bold"), command=venda_delivery_gui)
+    btn_venda_delivery.pack(pady=10, ipadx=50, ipady=5)
     
-    btn_voltar = tk.Button(main_frame, text="Voltar ao Menu Principal", command=mostrar_tela_principal)
-    btn_voltar.pack(pady=20)
+    btn_voltar = tk.Button(main_frame, text="Voltar ao Menu Principal", font=("Helvetica", 12, "bold"), command=mostrar_tela_principal)
+    btn_voltar.pack(pady=30, ipadx=50, ipady=5)
 
 def mostrar_tela_fluxo_caixa():
-    """Cria a janela para gerenciar o fluxo de caixa."""
-    limpar_tela_gui(main_frame)
+    """Cria a tela para gerenciar o fluxo de caixa."""
+    limpar_frame(main_frame)
     
-    tk.Label(main_frame, text="Fluxo de Caixa", font=("Helvetica", 14, "bold")).pack(pady=10)
+    tk.Label(main_frame, text="Fluxo de Caixa", font=("Helvetica", 14, "bold")).pack(pady=20)
     
-    btn_add_receita = tk.Button(main_frame, text="Adicionar Receita Manual", command=adicionar_receita_manual_gui)
-    btn_add_receita.pack(pady=10)
+    btn_add_receita = tk.Button(main_frame, text="Adicionar Receita Manual", font=("Helvetica", 12, "bold"), command=adicionar_receita_manual_gui)
+    btn_add_receita.pack(pady=10, ipadx=50, ipady=5)
 
-    btn_add_despesa = tk.Button(main_frame, text="Adicionar Despesa", command=adicionar_despesa_gui)
-    btn_add_despesa.pack(pady=10)
+    btn_add_despesa = tk.Button(main_frame, text="Adicionar Despesa", font=("Helvetica", 12, "bold"), command=adicionar_despesa_gui)
+    btn_add_despesa.pack(pady=10, ipadx=50, ipady=5)
     
-    btn_ver_resumo = tk.Button(main_frame, text="Ver Resumo do Fluxo", command=ver_resumo_fluxo_gui)
-    btn_ver_resumo.pack(pady=10)
+    btn_ver_resumo = tk.Button(main_frame, text="Ver Resumo do Fluxo", font=("Helvetica", 12, "bold"), command=ver_resumo_fluxo_gui)
+    btn_ver_resumo.pack(pady=10, ipadx=50, ipady=5)
 
-    btn_voltar = tk.Button(main_frame, text="Voltar ao Menu Principal", command=mostrar_tela_principal)
-    btn_voltar.pack(pady=20)
+    btn_voltar = tk.Button(main_frame, text="Voltar ao Menu Principal", font=("Helvetica", 12, "bold"), command=mostrar_tela_principal)
+    btn_voltar.pack(pady=30, ipadx=50, ipady=5)
 
 def mostrar_tela_relatorios():
-    """Cria a janela para gerar relatórios."""
-    limpar_tela_gui(main_frame)
+    """Cria a tela para gerar relatórios."""
+    limpar_frame(main_frame)
     
-    tk.Label(main_frame, text="Gerar Relatórios", font=("Helvetica", 14, "bold")).pack(pady=10)
+    tk.Label(main_frame, text="Gerar Relatórios", font=("Helvetica", 14, "bold")).pack(pady=20)
     
-    btn_fluxo_geral = tk.Button(main_frame, text="Fluxo de Caixa Geral (Excel)", command=lambda: gerar_relatorios_fluxo_caixa(receitas, despesas))
-    btn_fluxo_geral.pack(pady=10)
+    btn_fluxo_geral = tk.Button(main_frame, text="Fluxo de Caixa Geral (Excel)", font=("Helvetica", 12, "bold"), command=lambda: gerar_relatorios_fluxo_caixa(receitas, despesas))
+    btn_fluxo_geral.pack(pady=10, ipadx=50, ipady=5)
 
-    btn_fluxo_mensal = tk.Button(main_frame, text="Fluxo de Caixa Mensal (Excel)", command=gerar_relatorio_fluxo_mensal_gui)
-    btn_fluxo_mensal.pack(pady=10)
+    btn_fluxo_mensal = tk.Button(main_frame, text="Fluxo de Caixa Mensal (Excel)", font=("Helvetica", 12, "bold"), command=gerar_relatorio_fluxo_mensal_gui)
+    btn_fluxo_mensal.pack(pady=10, ipadx=50, ipady=5)
 
-    btn_estoque = tk.Button(main_frame, text="Relatório de Estoque (Excel)", command=lambda: gerar_relatorios_estoque(estoque))
-    btn_estoque.pack(pady=10)
+    btn_estoque = tk.Button(main_frame, text="Relatório de Estoque (Excel)", font=("Helvetica", 12, "bold"), command=lambda: gerar_relatorios_estoque(estoque))
+    btn_estoque.pack(pady=10, ipadx=50, ipady=5)
     
-    btn_voltar = tk.Button(main_frame, text="Voltar ao Menu Principal", command=mostrar_tela_principal)
-    btn_voltar.pack(pady=20)
+    btn_voltar = tk.Button(main_frame, text="Voltar ao Menu Principal", font=("Helvetica", 12, "bold"), command=mostrar_tela_principal)
+    btn_voltar.pack(pady=30, ipadx=50, ipady=5)
 
 # --- Funções que interagem com o script original ---
 
@@ -154,7 +154,7 @@ def ver_estoque_atual_gui():
             texto_estoque.tag_configure("destaque", foreground="red", font=("Courier", 10, "bold"))
             texto_estoque.tag_add("destaque", "end-2c linestart", "end-1c")
 
-    texto_estoque.config(state=tk.DISABLED) # Desabilita a edição
+    texto_estoque.config(state=tk.DISABLED)
 
 def mostrar_tela_adicionar_produto():
     """Abre uma nova janela para adicionar um produto ao estoque."""
@@ -298,8 +298,8 @@ def gerar_relatorio_fluxo_mensal_gui():
         messagebox.showerror("Erro", "Mês ou ano inválido.")
 
 def venda_balcao_gui():
-    """Inicia o processo de venda no balcão em uma nova janela."""
-    limpar_tela_gui(main_frame)
+    """Inicia o processo de venda no balcão em uma única janela."""
+    limpar_frame(main_frame)
     
     carrinho = {}
     
@@ -310,22 +310,23 @@ def venda_balcao_gui():
     venda_frame.pack(pady=10)
 
     # Widgets para selecionar produto
-    tk.Label(venda_frame, text="Produto:").grid(row=0, column=0, padx=5, pady=5)
+    tk.Label(venda_frame, text="Produto:", font=("Helvetica", 11)).grid(row=0, column=0, padx=5, pady=5)
     produtos_disponiveis = [produto.capitalize() for produto in estoque.keys()]
     lista_produtos_var = tk.StringVar(venda_frame)
     if produtos_disponiveis:
         lista_produtos_var.set(produtos_disponiveis[0])
         menu_produtos = tk.OptionMenu(venda_frame, lista_produtos_var, *produtos_disponiveis)
+        menu_produtos.config(font=("Helvetica", 10))
         menu_produtos.grid(row=0, column=1, padx=5, pady=5)
     else:
         tk.Label(venda_frame, text="Nenhum produto no estoque.").grid(row=0, column=1, padx=5, pady=5)
 
-    tk.Label(venda_frame, text="Quantidade:").grid(row=1, column=0, padx=5, pady=5)
+    tk.Label(venda_frame, text="Quantidade:", font=("Helvetica", 11)).grid(row=1, column=0, padx=5, pady=5)
     entry_quantidade = tk.Entry(venda_frame)
     entry_quantidade.grid(row=1, column=1, padx=5, pady=5)
 
-    btn_adicionar_carrinho = tk.Button(venda_frame, text="Adicionar ao Carrinho")
-    btn_adicionar_carrinho.grid(row=2, column=0, columnspan=2, pady=10)
+    btn_adicionar_carrinho = tk.Button(venda_frame, text="Adicionar ao Carrinho", font=("Helvetica", 11, "bold"))
+    btn_adicionar_carrinho.grid(row=2, column=0, columnspan=2, pady=10, ipadx=10, ipady=5)
 
     # Widgets para exibir o carrinho
     tk.Label(main_frame, text="--- Carrinho de Compras ---", font=("Helvetica", 12, "bold")).pack(pady=10)
@@ -336,11 +337,11 @@ def venda_balcao_gui():
     total_venda_label.pack(pady=10)
 
     # Botões de ação
-    btn_finalizar = tk.Button(main_frame, text="Finalizar Venda")
-    btn_finalizar.pack(pady=10, ipadx=50)
+    btn_finalizar = tk.Button(main_frame, text="Finalizar Venda", font=("Helvetica", 12, "bold"))
+    btn_finalizar.pack(pady=10, ipadx=50, ipady=5)
 
-    btn_voltar = tk.Button(main_frame, text="Voltar ao Menu Principal", command=mostrar_tela_principal)
-    btn_voltar.pack(pady=10)
+    btn_voltar = tk.Button(main_frame, text="Voltar ao Menu Principal", font=("Helvetica", 12, "bold"), command=mostrar_tela_principal)
+    btn_voltar.pack(pady=10, ipadx=50, ipady=5)
     
     def atualizar_carrinho():
         lista_produtos_text.delete('1.0', tk.END)
@@ -425,7 +426,7 @@ def venda_balcao_gui():
 
 def venda_delivery_gui():
     """Inicia o processo de venda de delivery em uma única janela."""
-    limpar_tela_gui(main_frame)
+    limpar_frame(main_frame)
     
     carrinho = {}
     
@@ -436,22 +437,23 @@ def venda_delivery_gui():
     venda_frame.pack(pady=10)
 
     # Widgets para selecionar produto
-    tk.Label(venda_frame, text="Produto:").grid(row=0, column=0, padx=5, pady=5)
+    tk.Label(venda_frame, text="Produto:", font=("Helvetica", 11)).grid(row=0, column=0, padx=5, pady=5)
     produtos_disponiveis = [produto.capitalize() for produto in estoque.keys()]
     lista_produtos_var = tk.StringVar(venda_frame)
     if produtos_disponiveis:
         lista_produtos_var.set(produtos_disponiveis[0])
         menu_produtos = tk.OptionMenu(venda_frame, lista_produtos_var, *produtos_disponiveis)
+        menu_produtos.config(font=("Helvetica", 10))
         menu_produtos.grid(row=0, column=1, padx=5, pady=5)
     else:
         tk.Label(venda_frame, text="Nenhum produto no estoque.").grid(row=0, column=1, padx=5, pady=5)
 
-    tk.Label(venda_frame, text="Quantidade:").grid(row=1, column=0, padx=5, pady=5)
+    tk.Label(venda_frame, text="Quantidade:", font=("Helvetica", 11)).grid(row=1, column=0, padx=5, pady=5)
     entry_quantidade = tk.Entry(venda_frame)
     entry_quantidade.grid(row=1, column=1, padx=5, pady=5)
 
-    btn_adicionar_carrinho = tk.Button(venda_frame, text="Adicionar ao Carrinho")
-    btn_adicionar_carrinho.grid(row=2, column=0, columnspan=2, pady=10)
+    btn_adicionar_carrinho = tk.Button(venda_frame, text="Adicionar ao Carrinho", font=("Helvetica", 11, "bold"))
+    btn_adicionar_carrinho.grid(row=2, column=0, columnspan=2, pady=10, ipadx=10, ipady=5)
 
     # Widgets para exibir o carrinho
     tk.Label(main_frame, text="--- Itens no Carrinho ---", font=("Helvetica", 12, "bold")).pack(pady=10)
@@ -459,11 +461,11 @@ def venda_delivery_gui():
     lista_produtos_text.pack(pady=5)
     
     # Botões de ação
-    btn_finalizar = tk.Button(main_frame, text="Finalizar Venda")
-    btn_finalizar.pack(pady=10, ipadx=50)
+    btn_finalizar = tk.Button(main_frame, text="Finalizar Venda", font=("Helvetica", 12, "bold"))
+    btn_finalizar.pack(pady=10, ipadx=50, ipady=5)
 
-    btn_voltar = tk.Button(main_frame, text="Voltar ao Menu Principal", command=mostrar_tela_principal)
-    btn_voltar.pack(pady=10)
+    btn_voltar = tk.Button(main_frame, text="Voltar ao Menu Principal", font=("Helvetica", 12, "bold"), command=mostrar_tela_principal)
+    btn_voltar.pack(pady=10, ipadx=50, ipady=5)
     
     def atualizar_carrinho_delivery():
         lista_produtos_text.delete('1.0', tk.END)
@@ -537,10 +539,18 @@ def iniciar_gui():
     global janela_principal, main_frame
     janela_principal = tk.Tk()
     janela_principal.title("Sistema de Gestão para Padaria")
-    janela_principal.geometry("500x550")
+    
+    # Inicia a janela em tela cheia
+    janela_principal.state('zoomed')
     
     main_frame = tk.Frame(janela_principal)
     main_frame.pack(fill="both", expand=True)
+
+    # Rodapé com a assinatura
+    footer_frame = tk.Frame(janela_principal)
+    footer_frame.pack(side="bottom", fill="x")
+    assinatura = tk.Label(footer_frame, text="SISTEMA DESENVOLVIDO POR ROBSON ALVES", font=("Arial", 9), fg="black")
+    assinatura.pack(pady=5)
     
     mostrar_tela_principal()
     
