@@ -538,7 +538,7 @@ def iniciar_gui():
     """Função principal que inicia a interface gráfica."""
     global janela_principal, main_frame
     janela_principal = tk.Tk()
-    janela_principal.title("Sistema de Gestão para Padaria")
+    janela_principal.title("Sistema de Gestão - Padaria Majurak")
     
     # Inicia a janela em tela cheia
     janela_principal.state('zoomed')
