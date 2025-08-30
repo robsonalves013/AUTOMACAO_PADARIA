@@ -83,7 +83,7 @@ def salvar_dados(receitas, despesas, estoque):
 def mostrar_logo_inicial():
     """Exibe a mensagem de abertura do script."""
     print("=" * 40)
-    print(f"{AZUL}{NEGRITO}{'SISTEMA DE GESTÃO PARA PADARIA':^40}{RESET}")
+    print(f"{AZUL}{NEGRITO}{'SISTEMA DE GESTÃO - PADARIA MAJURAK':^40}{RESET}")
     print("=" * 40)
     print(f"{AZUL}{NEGRITO}{ASSINATURA:^40}{RESET}")
     print("=" * 40)
