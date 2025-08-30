@@ -6,6 +6,7 @@ import json
 import locale
 import os
 import time
+import sys
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
@@ -36,8 +37,9 @@ def verificar_diretorio():
         print(f"Diretório '{DIRETORIO_DADOS}' criado com sucesso.")
 
 def limpar_tela():
-    """Limpa o console, compatível com diferentes sistemas operacionais."""
-    os.system('cls' if os.name == 'nt' else 'clear')
+    """Limpa o console de forma compatível usando códigos ANSI."""
+    sys.stdout.write('\033[2J\033[H')
+    sys.stdout.flush()
 
 def carregar_dados():
     """Carrega os dados de um arquivo JSON. Se não existir, cria um com dados de exemplo."""
@@ -152,9 +154,13 @@ def gerenciar_fluxo_caixa(receitas, despesas, estoque):
                 saldo_cor = f"{VERDE}{NEGRITO}{saldo_formatado}{RESET}"
             else:
                 saldo_cor = f"{VERMELHO}{NEGRITO}{saldo_formatado}{RESET}"
+            
+            # Formatação dos totais com cores
+            receitas_cor = f"{VERDE}{NEGRITO}{locale.currency(total_receitas, grouping=True)}{RESET}"
+            despesas_cor = f"{VERMELHO}{NEGRITO}{locale.currency(total_despesas, grouping=True)}{RESET}"
 
-            print(f"\n{NEGRITO}Total de Receitas: {locale.currency(total_receitas, grouping=True)}{RESET}")
-            print(f"{NEGRITO}Total de Despesas: {locale.currency(total_despesas, grouping=True)}{RESET}")
+            print(f"\n{NEGRITO}Total de Receitas:{RESET} {receitas_cor}")
+            print(f"{NEGRITO}Total de Despesas:{RESET} {despesas_cor}")
             print(f"{NEGRITO}Saldo Atual:{RESET} {saldo_cor}")
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
@@ -242,31 +248,45 @@ def gerenciar_estoque(receitas, despesas, estoque):
 
 # --- Funções reestruturadas para o menu de vendas ---
 
-def processar_venda(receitas, despesas, estoque, produto_selecionado, quantidade, forma_pagamento):
+def processar_venda(receitas, despesas, estoque, carrinho, forma_pagamento):
     """Processa a lógica central de venda: subtrai do estoque e registra a receita."""
     
-    estoque[produto_selecionado]['quantidade'] -= quantidade
-    valor_venda = quantidade * estoque[produto_selecionado]['valor_unitario']
-    
+    total_venda = 0
     agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
+    for item in carrinho:
+        produto_selecionado = item['produto']
+        quantidade = item['quantidade']
+        
+        # Subtrai do estoque
+        estoque[produto_selecionado]['quantidade'] -= quantidade
+        
+        # Calcula o valor do item e adiciona ao total da venda
+        valor_item = quantidade * estoque[produto_selecionado]['valor_unitario']
+        total_venda += valor_item
+    
+    # Registra a receita total da venda
     receitas.append({
-        'descricao': f"Venda de {quantidade} und. de {produto_selecionado}",
-        'valor': valor_venda,
+        'descricao': f"Venda de {len(carrinho)} item(s) - Balcão",
+        'valor': total_venda,
         'data': agora,
         'tipo': 'receita',
         'forma_pagamento': forma_pagamento
     })
     
     salvar_dados(receitas, despesas, estoque)
-    valor_venda_formatado = locale.currency(valor_venda, grouping=True)
     
-    print(f"\n{AMARELO}{NEGRITO}Venda registrada de {quantidade} unidades de '{produto_selecionado}' no valor total de {valor_venda_formatado} ({forma_pagamento}).{RESET}")
-    print(f"{AMARELO}{NEGRITO}Estoque atual de '{produto_selecionado}': {estoque[produto_selecionado]['quantidade']}{RESET}")
+    total_venda_formatado = locale.currency(total_venda, grouping=True)
     
+    print(f"\n{AMARELO}{NEGRITO}Venda registrada no valor total de {total_venda_formatado} ({forma_pagamento}).{RESET}")
+    print(f"{AMARELO}{NEGRITO}Itens vendidos:{RESET}")
+    for item in carrinho:
+        print(f"  - {item['quantidade']} und. de {item['produto'].capitalize()}")
+
     if forma_pagamento == 'Dinheiro':
         try:
             valor_recebido = float(input(f"Valor recebido do cliente: "))
-            troco = valor_recebido - valor_venda
+            troco = valor_recebido - total_venda
             troco_formatado = locale.currency(troco, grouping=True)
             print(f"{AMARELO}{NEGRITO}Troco a ser devolvido: {troco_formatado}{RESET}")
         except ValueError:
@@ -292,15 +312,15 @@ def exibir_produtos_e_obter_escolha(estoque):
                 valor_formatado = locale.currency(dados['valor_unitario'], grouping=True)
                 print(f"  {item_num}. {produto.capitalize()} ({dados['quantidade']} und.) - {valor_formatado} por und.")
                 item_num += 1
-
+    
     try:
-        escolha = int(input("\nEscolha um produto (número) para vender ou 0 para voltar: "))
+        escolha = int(input("\nEscolha um produto (número) para adicionar ao carrinho, ou 0 para finalizar: "))
         if escolha == 0:
             return None, None
         
         if 1 <= escolha <= len(produtos_flat):
             produto_selecionado = produtos_flat[escolha - 1]
-            quantidade = int(input(f"Quantas unidades de '{produto_selecionado.capitalize()}' deseja vender? "))
+            quantidade = int(input(f"Quantas unidades de '{produto_selecionado.capitalize()}' deseja adicionar? "))
 
             if quantidade <= 0:
                 print("Quantidade inválida.")
@@ -317,38 +337,83 @@ def exibir_produtos_e_obter_escolha(estoque):
         print("Entrada inválida. Por favor, digite um número.")
         return None, None
 
-def venda_balcao(receitas, despesas, estoque):
-    """Lógica de vendas no balcão (presenciais)."""
-    limpar_tela()
-    print(f"\n{AMARELO}#### Venda no Balcão ####{RESET}")
-    produto_selecionado, quantidade = exibir_produtos_e_obter_escolha(estoque)
+def alerta_estoque_baixo(estoque):
+    """Exibe um alerta se algum item estiver com estoque abaixo de 10 unidades."""
+    print(f"\n{VERMELHO}{NEGRITO}#### ALERTA DE ESTOQUE BAIXO ####{RESET}")
+    itens_baixo_estoque = False
+    for produto, dados in estoque.items():
+        if dados['quantidade'] < 10 and dados['quantidade'] > 0:
+            print(f"- O estoque de '{produto.capitalize()}' está baixo ({dados['quantidade']} unidades restantes).")
+            itens_baixo_estoque = True
+        elif dados['quantidade'] == 0:
+            print(f"- O produto '{produto.capitalize()}' está esgotado.")
+            itens_baixo_estoque = True
+    
+    if itens_baixo_estoque:
+        input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar com a venda...{RESET}")
 
-    if produto_selecionado is not None:
-        print(f"\n{AMARELO}#### Formas de Pagamento ####{RESET}")
-        metodos_pagamento = ['Dinheiro', 'Cartão de Débito', 'Cartão de Crédito', 'PIX']
-        for i, metodo in enumerate(metodos_pagamento, 1):
-            print(f"  {i}. {metodo}")
+def venda_balcao(receitas, despesas, estoque):
+    """Lógica de vendas no balcão (presenciais) com carrinho de compras."""
+    carrinho = []
+    
+    alerta_estoque_baixo(estoque)
+    
+    while True:
+        limpar_tela()
+        print(f"\n{AMARELO}#### Venda no Balcão (Carrinho) ####{RESET}")
         
-        try:
-            escolha_pagamento = int(input("Escolha a forma de pagamento (número): "))
-            if 1 <= escolha_pagamento <= len(metodos_pagamento):
-                forma_pagamento = metodos_pagamento[escolha_pagamento - 1]
-                processar_venda(receitas, despesas, estoque, produto_selecionado, quantidade, forma_pagamento)
+        if carrinho:
+            print("\n--- Itens no Carrinho ---")
+            total_provisorio = 0
+            for item in carrinho:
+                valor_item = item['quantidade'] * estoque[item['produto']]['valor_unitario']
+                total_provisorio += valor_item
+                print(f" - {item['quantidade']}x {item['produto'].capitalize()} ({locale.currency(valor_item, grouping=True)})")
+            print(f"\n{NEGRITO}Total Provisório: {locale.currency(total_provisorio, grouping=True)}{RESET}")
+            print("--------------------------")
+        
+        produto_selecionado, quantidade = exibir_produtos_e_obter_escolha(estoque)
+
+        if produto_selecionado:
+            carrinho.append({'produto': produto_selecionado, 'quantidade': quantidade})
+            print(f"\n{VERDE}{quantidade} unidades de '{produto_selecionado.capitalize()}' adicionadas ao carrinho.{RESET}")
+            input(f"\n{AZUL}{NEGRITO}Pressione Enter para adicionar mais itens...{RESET}")
+        elif quantidade is None: # Se a escolha foi 0 para finalizar
+            if not carrinho:
+                print("Carrinho vazio. Venda cancelada.")
+                break
             else:
-                print("Opção de pagamento inválida. Venda cancelada.")
-        except ValueError:
-            print("Entrada inválida. Venda cancelada.")
+                print(f"\n{AMARELO}#### Finalizar Venda ####{RESET}")
+                metodos_pagamento = ['Dinheiro', 'Cartão de Débito', 'Cartão de Crédito', 'PIX']
+                for i, metodo in enumerate(metodos_pagamento, 1):
+                    print(f"  {i}. {metodo}")
+                
+                try:
+                    escolha_pagamento = int(input("Escolha a forma de pagamento (número): "))
+                    if 1 <= escolha_pagamento <= len(metodos_pagamento):
+                        forma_pagamento = metodos_pagamento[escolha_pagamento - 1]
+                        processar_venda(receitas, despesas, estoque, carrinho, forma_pagamento)
+                        break
+                    else:
+                        print("Opção de pagamento inválida. Venda cancelada.")
+                        input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
+                except ValueError:
+                    print("Entrada inválida. Venda cancelada.")
+                    input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
         
     input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
 # --- NOVA FUNÇÃO PARA PROCESSAR VENDA DE DELIVERY ---
-def processar_venda_delivery(receitas, despesas, estoque, produto_selecionado, quantidade, forma_pagamento):
+def processar_venda_delivery(receitas, despesas, estoque, carrinho, forma_pagamento):
     """Processa a venda de delivery, apenas subtraindo o estoque e registrando a transação."""
-    estoque[produto_selecionado]['quantidade'] -= quantidade
+    for item in carrinho:
+        produto_selecionado = item['produto']
+        quantidade = item['quantidade']
+        estoque[produto_selecionado]['quantidade'] -= quantidade
     
     agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     receitas.append({
-        'descricao': f"Venda de {quantidade} und. de {produto_selecionado}",
+        'descricao': f"Venda de {len(carrinho)} item(s) - Delivery",
         'valor': 0.0, # Valor fixo em zero para vendas de delivery
         'data': agora,
         'tipo': 'receita',
@@ -357,11 +422,15 @@ def processar_venda_delivery(receitas, despesas, estoque, produto_selecionado, q
     
     salvar_dados(receitas, despesas, estoque)
     
-    print(f"\n{AMARELO}{NEGRITO}Venda de {quantidade} unidades de '{produto_selecionado}' registrada ({forma_pagamento}).{RESET}")
-    print(f"{AMARELO}{NEGRITO}Estoque atual de '{produto_selecionado}': {estoque[produto_selecionado]['quantidade']}{RESET}")
+    print(f"\n{AMARELO}{NEGRITO}Venda de delivery registrada ({forma_pagamento}).{RESET}")
+    print(f"{AMARELO}{NEGRITO}Itens vendidos:{RESET}")
+    for item in carrinho:
+        print(f"  - {item['quantidade']} und. de {item['produto'].capitalize()}")
 
 def venda_delivery(receitas, despesas, estoque):
-    """Lógica de vendas por delivery (Ifood e 99food)."""
+    """Lógica de vendas por delivery (Ifood e 99food) com carrinho de compras."""
+    alerta_estoque_baixo(estoque)
+
     while True:
         limpar_tela()
         print(f"\n{AMARELO}#### Venda por Delivery ####{RESET}")
@@ -369,23 +438,35 @@ def venda_delivery(receitas, despesas, estoque):
         print("2. 99food")
         print(f"3. {AZUL}{NEGRITO}Voltar ao Menu de Vendas{RESET}")
         
-        escolha = input("Escolha a plataforma de delivery: ")
+        escolha_plataforma = input("Escolha a plataforma de delivery: ")
         
-        if escolha == '1':
-            plataforma = 'Ifood'
-            produto_selecionado, quantidade = exibir_produtos_e_obter_escolha(estoque)
-            if produto_selecionado is not None:
-                # Chama a nova função sem valor
-                processar_venda_delivery(receitas, despesas, estoque, produto_selecionado, quantidade, plataforma)
+        if escolha_plataforma == '1' or escolha_plataforma == '2':
+            plataforma = 'Ifood' if escolha_plataforma == '1' else '99food'
+            carrinho = []
+            
+            while True:
+                limpar_tela()
+                print(f"\n{AMARELO}#### Venda por Delivery ({plataforma}) ####{RESET}")
+                if carrinho:
+                    print("\n--- Itens no Carrinho ---")
+                    for item in carrinho:
+                        print(f" - {item['quantidade']}x {item['produto'].capitalize()}")
+                    print("--------------------------")
+                
+                produto_selecionado, quantidade = exibir_produtos_e_obter_escolha(estoque)
+                
+                if produto_selecionado:
+                    carrinho.append({'produto': produto_selecionado, 'quantidade': quantidade})
+                    print(f"\n{VERDE}{quantidade} unidades de '{produto_selecionado.capitalize()}' adicionadas ao carrinho.{RESET}")
+                    input(f"\n{AZUL}{NEGRITO}Pressione Enter para adicionar mais itens...{RESET}")
+                elif quantidade is None: # Finaliza a venda
+                    if not carrinho:
+                        print("Carrinho vazio. Venda cancelada.")
+                    else:
+                        processar_venda_delivery(receitas, despesas, estoque, carrinho, plataforma)
+                    break
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
-        elif escolha == '2':
-            plataforma = '99food'
-            produto_selecionado, quantidade = exibir_produtos_e_obter_escolha(estoque)
-            if produto_selecionado is not None:
-                # Chama a nova função sem valor
-                processar_venda_delivery(receitas, despesas, estoque, produto_selecionado, quantidade, plataforma)
-            input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
-        elif escolha == '3':
+        elif escolha_plataforma == '3':
             break
         else:
             print("Opção inválida.")
@@ -411,7 +492,6 @@ def menu_vendas(receitas, despesas, estoque):
         else:
             print("Opção inválida.")
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
-
 
 def formatar_planilha_excel(caminho_arquivo):
     """Formata as planilhas do Excel para melhor visualização."""
