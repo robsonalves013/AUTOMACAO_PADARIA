@@ -1,16 +1,18 @@
-# automacao_padaria_delivery_sem_valor.py
-
 import datetime
 import pandas as pd
 import json
 import locale
 import os
 import time
-import sys
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
 from collections import defaultdict
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
 
 # --- Códigos ANSI para cores ---
 AMARELO = '\033[93m'
@@ -30,6 +32,10 @@ except locale.Error:
 DIRETORIO_DADOS = "relatorios_padaria"
 ASSINATURA = "Sistema desenvolvido por ROBSON ALVES"
 
+# --- Configurações do e-mail (ATUALIZAR COM SUAS INFORMAÇÕES) ---
+EMAIL_REMETENTE = 'padariamajurak@gmail.com'  # Troque pelo seu e-mail
+SENHA_APP = 'sua_senha_de_app'                # Troque pela sua senha de app
+
 def verificar_diretorio():
     """Cria o diretório de dados se ele não existir."""
     if not os.path.exists(DIRETORIO_DADOS):
@@ -37,9 +43,8 @@ def verificar_diretorio():
         print(f"Diretório '{DIRETORIO_DADOS}' criado com sucesso.")
 
 def limpar_tela():
-    """Limpa o console de forma compatível usando códigos ANSI."""
-    sys.stdout.write('\033[2J\033[H')
-    sys.stdout.flush()
+    """Limpa o console, compatível com diferentes sistemas operacionais."""
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 def carregar_dados():
     """Carrega os dados de um arquivo JSON. Se não existir, cria um com dados de exemplo."""
@@ -83,7 +88,7 @@ def salvar_dados(receitas, despesas, estoque):
 def mostrar_logo_inicial():
     """Exibe a mensagem de abertura do script."""
     print("=" * 40)
-    print(f"{AZUL}{NEGRITO}{'SISTEMA DE GESTÃO - PADARIA MAJURAK':^40}{RESET}")
+    print(f"{AZUL}{NEGRITO}{'SISTEMA DE GESTÃO PARA PADARIA':^40}{RESET}")
     print("=" * 40)
     print(f"{AZUL}{NEGRITO}{ASSINATURA:^40}{RESET}")
     print("=" * 40)
@@ -154,13 +159,9 @@ def gerenciar_fluxo_caixa(receitas, despesas, estoque):
                 saldo_cor = f"{VERDE}{NEGRITO}{saldo_formatado}{RESET}"
             else:
                 saldo_cor = f"{VERMELHO}{NEGRITO}{saldo_formatado}{RESET}"
-            
-            # Formatação dos totais com cores
-            receitas_cor = f"{VERDE}{NEGRITO}{locale.currency(total_receitas, grouping=True)}{RESET}"
-            despesas_cor = f"{VERMELHO}{NEGRITO}{locale.currency(total_despesas, grouping=True)}{RESET}"
 
-            print(f"\n{NEGRITO}Total de Receitas:{RESET} {receitas_cor}")
-            print(f"{NEGRITO}Total de Despesas:{RESET} {despesas_cor}")
+            print(f"\n{NEGRITO}Total de Receitas: {locale.currency(total_receitas, grouping=True)}{RESET}")
+            print(f"{NEGRITO}Total de Despesas: {locale.currency(total_despesas, grouping=True)}{RESET}")
             print(f"{NEGRITO}Saldo Atual:{RESET} {saldo_cor}")
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
@@ -178,7 +179,7 @@ def gerenciar_estoque(receitas, despesas, estoque):
         print(f"\n{AMARELO}#### Gerenciar Estoque ####{RESET}")
         print("1. Adicionar Produto (Entrada)")
         print("2. Ver Estoque Atual")
-        print(f"3. {VERDE}{NEGRITO}Adicionar/Mudar Categoria de Produto{RESET}")
+        print("3. Mudar Categoria de Produto")
         print(f"4. {AZUL}{NEGRITO}Voltar ao Menu Principal{RESET}")
         escolha = input("Escolha uma opção: ")
 
@@ -206,39 +207,29 @@ def gerenciar_estoque(receitas, despesas, estoque):
             if not estoque:
                 print("O estoque está vazio.")
             else:
-                for produto, dados in sorted(estoque.items()):
+                for produto, dados in estoque.items():
                     valor_unitario_formatado = locale.currency(dados['valor_unitario'], grouping=True)
                     categoria = dados.get('categoria', 'N/A')
-                    
-                    quantidade = dados['quantidade']
-                    
-                    if quantidade <= 10:
-                        cor = VERMELHO
-                        negrito = NEGRITO
-                    else:
-                        cor = ''
-                        negrito = ''
-                    
-                    print(f"{cor}{negrito}- {produto.capitalize()} ({categoria}): {quantidade} unidades ({valor_unitario_formatado} cada){RESET}")
+                    print(f"- {NEGRITO}{produto.capitalize()}{RESET} ({categoria}): {dados['quantidade']} unidades ({valor_unitario_formatado} cada)")
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
         elif escolha == '3':
             if not estoque:
-                print("O estoque está vazio. Adicione um produto primeiro.")
+                print("O estoque está vazio. Não há produtos para mudar de categoria.")
                 input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
                 continue
             
             produtos_lista = list(estoque.keys())
-            print(f"\n{AMARELO}#### Adicionar/Mudar Categoria de Produto ####{RESET}")
+            print(f"\n{AMARELO}#### Mudar Categoria de Produto ####{RESET}")
             for i, produto in enumerate(produtos_lista, 1):
                 categoria_atual = estoque[produto]['categoria']
                 print(f"{i}. {produto.capitalize()} (Categoria atual: {categoria_atual})")
                 
             try:
-                escolha_produto = int(input("\nEscolha o número do produto para mudar a categoria: "))
+                escolha_produto = int(input("\nEscolha o número do produto que deseja mudar: "))
                 if 1 <= escolha_produto <= len(produtos_lista):
                     produto_selecionado = produtos_lista[escolha_produto - 1]
-                    nova_categoria = input(f"Digite a nova categoria para '{produto_selecionado.capitalize()}': ").capitalize()
+                    nova_categoria = input(f"Digite a nova categoria para '{produto_selecionado.capitalize()}': ")
                     
                     estoque[produto_selecionado]['categoria'] = nova_categoria
                     salvar_dados(receitas, despesas, estoque)
@@ -256,252 +247,127 @@ def gerenciar_estoque(receitas, despesas, estoque):
             print("Opção inválida. Tente novamente.")
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
-# --- Funções reestruturadas para o menu de vendas ---
-
-def processar_venda(receitas, despesas, estoque, carrinho, forma_pagamento):
-    """Processa a lógica central de venda: subtrai do estoque e registra a receita."""
-    
-    total_venda = 0
-    agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-
-    for item in carrinho:
-        produto_selecionado = item['produto']
-        quantidade = item['quantidade']
-        
-        # Subtrai do estoque
-        estoque[produto_selecionado]['quantidade'] -= quantidade
-        
-        # Calcula o valor do item e adiciona ao total da venda
-        valor_item = quantidade * estoque[produto_selecionado]['valor_unitario']
-        total_venda += valor_item
-    
-    # Registra a receita total da venda
-    receitas.append({
-        'descricao': f"Venda de {len(carrinho)} item(s) - Balcão",
-        'valor': total_venda,
-        'data': agora,
-        'tipo': 'receita',
-        'forma_pagamento': forma_pagamento
-    })
-    
-    salvar_dados(receitas, despesas, estoque)
-    
-    total_venda_formatado = locale.currency(total_venda, grouping=True)
-    
-    print(f"\n{AMARELO}{NEGRITO}Venda registrada no valor total de {total_venda_formatado} ({forma_pagamento}).{RESET}")
-    print(f"{AMARELO}{NEGRITO}Itens vendidos:{RESET}")
-    for item in carrinho:
-        print(f"  - {item['quantidade']} und. de {item['produto'].capitalize()}")
-
-    if forma_pagamento == 'Dinheiro':
-        try:
-            valor_recebido = float(input(f"Valor recebido do cliente: "))
-            troco = valor_recebido - total_venda
-            troco_formatado = locale.currency(troco, grouping=True)
-            print(f"{AMARELO}{NEGRITO}Troco a ser devolvido: {troco_formatado}{RESET}")
-        except ValueError:
-            print(f"{VERMELHO}{NEGRITO}Valor recebido inválido. Troco não calculado.{RESET}")
-
-def exibir_produtos_e_obter_escolha(estoque):
-    """Exibe a lista de produtos e retorna a escolha do usuário e a quantidade."""
-    produtos_por_categoria = defaultdict(list)
-    for produto, dados in estoque.items():
-        categoria = dados.get('categoria', 'Outros')
-        produtos_por_categoria[categoria].append((produto, dados))
-        
-    produtos_flat = []
-    if not estoque:
-        print("  - Estoque vazio. Não é possível fazer vendas.")
-        return None, None
-    else:
-        item_num = 1
-        for categoria, produtos_lista in sorted(produtos_por_categoria.items()):
-            print(f"\n{AMARELO}--- {categoria.upper()} ---{RESET}")
-            for produto, dados in produtos_lista:
-                produtos_flat.append(produto)
-                valor_formatado = locale.currency(dados['valor_unitario'], grouping=True)
-                print(f"  {item_num}. {produto.capitalize()} ({dados['quantidade']} und.) - {valor_formatado} por und.")
-                item_num += 1
-    
-    try:
-        escolha = int(input("\nEscolha um produto (número) para adicionar ao carrinho, ou 0 para finalizar: "))
-        if escolha == 0:
-            return None, None
-        
-        if 1 <= escolha <= len(produtos_flat):
-            produto_selecionado = produtos_flat[escolha - 1]
-            quantidade = int(input(f"Quantas unidades de '{produto_selecionado.capitalize()}' deseja adicionar? "))
-
-            if quantidade <= 0:
-                print("Quantidade inválida.")
-                return None, None
-            elif quantidade > estoque[produto_selecionado]['quantidade']:
-                print("Estoque insuficiente para essa venda.")
-                return None, None
-            else:
-                return produto_selecionado, quantidade
-        else:
-            print("Opção inválida. Tente novamente.")
-            return None, None
-    except ValueError:
-        print("Entrada inválida. Por favor, digite um número.")
-        return None, None
-
-def alerta_estoque_baixo(estoque):
-    """Exibe um alerta se algum item estiver com estoque abaixo de 10 unidades."""
-    print(f"\n{VERMELHO}{NEGRITO}#### ALERTA DE ESTOQUE BAIXO ####{RESET}")
-    itens_baixo_estoque = False
-    for produto, dados in estoque.items():
-        if dados['quantidade'] < 10 and dados['quantidade'] > 0:
-            print(f"- O estoque de '{produto.capitalize()}' está baixo ({dados['quantidade']} unidades restantes).")
-            itens_baixo_estoque = True
-        elif dados['quantidade'] == 0:
-            print(f"- O produto '{produto.capitalize()}' está esgotado.")
-            itens_baixo_estoque = True
-    
-    if itens_baixo_estoque:
-        input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar com a venda...{RESET}")
-
-def venda_balcao(receitas, despesas, estoque):
-    """Lógica de vendas no balcão (presenciais) com carrinho de compras."""
-    carrinho = []
-    
-    alerta_estoque_baixo(estoque)
-    
-    while True:
-        limpar_tela()
-        print(f"\n{AMARELO}#### Venda no Balcão (Carrinho) ####{RESET}")
-        
-        if carrinho:
-            print("\n--- Itens no Carrinho ---")
-            total_provisorio = 0
-            for item in carrinho:
-                valor_item = item['quantidade'] * estoque[item['produto']]['valor_unitario']
-                total_provisorio += valor_item
-                print(f" - {item['quantidade']}x {item['produto'].capitalize()} ({locale.currency(valor_item, grouping=True)})")
-            print(f"\n{NEGRITO}Total Provisório: {locale.currency(total_provisorio, grouping=True)}{RESET}")
-            print("--------------------------")
-        
-        produto_selecionado, quantidade = exibir_produtos_e_obter_escolha(estoque)
-
-        if produto_selecionado:
-            carrinho.append({'produto': produto_selecionado, 'quantidade': quantidade})
-            print(f"\n{VERDE}{quantidade} unidades de '{produto_selecionado.capitalize()}' adicionadas ao carrinho.{RESET}")
-            input(f"\n{AZUL}{NEGRITO}Pressione Enter para adicionar mais itens...{RESET}")
-        elif quantidade is None: # Se a escolha foi 0 para finalizar
-            if not carrinho:
-                print("Carrinho vazio. Venda cancelada.")
-                break
-            else:
-                print(f"\n{AMARELO}#### Finalizar Venda ####{RESET}")
-                metodos_pagamento = ['Dinheiro', 'Cartão de Débito', 'Cartão de Crédito', 'PIX']
-                for i, metodo in enumerate(metodos_pagamento, 1):
-                    print(f"  {i}. {metodo}")
-                
-                try:
-                    escolha_pagamento = int(input("Escolha a forma de pagamento (número): "))
-                    if 1 <= escolha_pagamento <= len(metodos_pagamento):
-                        forma_pagamento = metodos_pagamento[escolha_pagamento - 1]
-                        processar_venda(receitas, despesas, estoque, carrinho, forma_pagamento)
-                        break
-                    else:
-                        print("Opção de pagamento inválida. Venda cancelada.")
-                        input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
-                except ValueError:
-                    print("Entrada inválida. Venda cancelada.")
-                    input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
-        
-    input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
-
-# --- NOVA FUNÇÃO PARA PROCESSAR VENDA DE DELIVERY ---
-def processar_venda_delivery(receitas, despesas, estoque, carrinho, forma_pagamento):
-    """Processa a venda de delivery, apenas subtraindo o estoque e registrando a transação."""
-    for item in carrinho:
-        produto_selecionado = item['produto']
-        quantidade = item['quantidade']
-        estoque[produto_selecionado]['quantidade'] -= quantidade
-    
-    agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    receitas.append({
-        'descricao': f"Venda de {len(carrinho)} item(s) - Delivery",
-        'valor': 0.0, # Valor fixo em zero para vendas de delivery
-        'data': agora,
-        'tipo': 'receita',
-        'forma_pagamento': forma_pagamento
-    })
-    
-    salvar_dados(receitas, despesas, estoque)
-    
-    print(f"\n{AMARELO}{NEGRITO}Venda de delivery registrada ({forma_pagamento}).{RESET}")
-    print(f"{AMARELO}{NEGRITO}Itens vendidos:{RESET}")
-    for item in carrinho:
-        print(f"  - {item['quantidade']} und. de {item['produto'].capitalize()}")
-
-def venda_delivery(receitas, despesas, estoque):
-    """Lógica de vendas por delivery (Ifood e 99food) com carrinho de compras."""
-    alerta_estoque_baixo(estoque)
-
-    while True:
-        limpar_tela()
-        print(f"\n{AMARELO}#### Venda por Delivery ####{RESET}")
-        print("1. Ifood")
-        print("2. 99food")
-        print(f"3. {AZUL}{NEGRITO}Voltar ao Menu de Vendas{RESET}")
-        
-        escolha_plataforma = input("Escolha a plataforma de delivery: ")
-        
-        if escolha_plataforma == '1' or escolha_plataforma == '2':
-            plataforma = 'Ifood' if escolha_plataforma == '1' else '99food'
-            carrinho = []
-            
-            while True:
-                limpar_tela()
-                print(f"\n{AMARELO}#### Venda por Delivery ({plataforma}) ####{RESET}")
-                if carrinho:
-                    print("\n--- Itens no Carrinho ---")
-                    for item in carrinho:
-                        print(f" - {item['quantidade']}x {item['produto'].capitalize()}")
-                    print("--------------------------")
-                
-                produto_selecionado, quantidade = exibir_produtos_e_obter_escolha(estoque)
-                
-                if produto_selecionado:
-                    carrinho.append({'produto': produto_selecionado, 'quantidade': quantidade})
-                    print(f"\n{VERDE}{quantidade} unidades de '{produto_selecionado.capitalize()}' adicionadas ao carrinho.{RESET}")
-                    input(f"\n{AZUL}{NEGRITO}Pressione Enter para adicionar mais itens...{RESET}")
-                elif quantidade is None: # Finaliza a venda
-                    if not carrinho:
-                        print("Carrinho vazio. Venda cancelada.")
-                    else:
-                        processar_venda_delivery(receitas, despesas, estoque, carrinho, plataforma)
-                    break
-            input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
-        elif escolha_plataforma == '3':
-            break
-        else:
-            print("Opção inválida.")
-            input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
-
-def menu_vendas(receitas, despesas, estoque):
-    """Menu principal para gerenciar os tipos de vendas."""
+def gerenciar_vendas(receitas, despesas, estoque):
+    """Gerencia as operações de vendas."""
     while True:
         limpar_tela()
         print(f"\n{AMARELO}#### Menu de Vendas ####{RESET}")
-        print("1. Venda no Balcão")
-        print("2. Venda por Delivery")
-        print(f"3. {AZUL}{NEGRITO}Voltar ao Menu Principal{RESET}")
         
-        escolha = input("Escolha uma opção: ")
-        
-        if escolha == '1':
-            venda_balcao(receitas, despesas, estoque)
-        elif escolha == '2':
-            venda_delivery(receitas, despesas, estoque)
-        elif escolha == '3':
-            break
+        produtos_por_categoria = defaultdict(list)
+        for produto, dados in estoque.items():
+            categoria = dados.get('categoria', 'Outros')
+            produtos_por_categoria[categoria].append((produto, dados))
+            
+        produtos_flat = []
+        if not estoque:
+            print("  - Estoque vazio. Não é possível fazer vendas.")
         else:
-            print("Opção inválida.")
-            input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
+            item_num = 1
+            for categoria, produtos_lista in sorted(produtos_por_categoria.items()):
+                print(f"\n{AMARELO}--- {categoria.upper()} ---{RESET}")
+                for produto, dados in produtos_lista:
+                    produtos_flat.append(produto)
+                    valor_formatado = locale.currency(dados['valor_unitario'], grouping=True)
+                    print(f"  {item_num}. {produto.capitalize()} ({dados['quantidade']} und.) - {valor_formatado} por und.")
+                    item_num += 1
+        
+        print(f"\n0. {AZUL}{NEGRITO}Voltar ao Menu Principal{RESET}")
+        
+        try:
+            escolha = int(input("\nEscolha um produto (número) para vender ou 0 para voltar: "))
+            if escolha == 0:
+                break
+            
+            if 1 <= escolha <= len(produtos_flat):
+                produto_selecionado = produtos_flat[escolha - 1]
+                
+                quantidade = int(input(f"Quantas unidades de '{produto_selecionado.capitalize()}' deseja vender? "))
+                
+                if quantidade <= 0:
+                    print("Quantidade inválida.")
+                elif quantidade <= estoque[produto_selecionado]['quantidade']:
+                    print(f"\n{AMARELO}#### Formas de Pagamento ####{RESET}")
+                    metodos_pagamento = ['Dinheiro', 'Cartão de Débito', 'Cartão de Crédito', 'PIX']
+                    for i, metodo in enumerate(metodos_pagamento, 1):
+                        print(f"  {i}. {metodo}")
+                    
+                    escolha_pagamento = int(input("Escolha a forma de pagamento (número): "))
+                    if 1 <= escolha_pagamento <= len(metodos_pagamento):
+                        forma_pagamento = metodos_pagamento[escolha_pagamento - 1]
+                        
+                        estoque[produto_selecionado]['quantidade'] -= quantidade
+                        valor_venda = quantidade * estoque[produto_selecionado]['valor_unitario']
+
+                        if forma_pagamento == 'Dinheiro':
+                            try:
+                                valor_recebido = float(input(f"Valor recebido do cliente: "))
+                                troco = valor_recebido - valor_venda
+                                troco_formatado = locale.currency(troco, grouping=True)
+                                print(f"{AMARELO}{NEGRITO}Troco a ser devolvido: {troco_formatado}{RESET}")
+                            except ValueError:
+                                print(f"{VERMELHO}{NEGRITO}Valor recebido inválido. Troco não calculado.{RESET}")
+                                
+                        agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                        receitas.append({
+                            'descricao': f"Venda de {quantidade} und. de {produto_selecionado}",
+                            'valor': valor_venda,
+                            'data': agora,
+                            'tipo': 'receita',
+                            'forma_pagamento': forma_pagamento
+                        })
+                        
+                        salvar_dados(receitas, despesas, estoque)
+                        valor_venda_formatado = locale.currency(valor_venda, grouping=True)
+                        
+                        print(f"\n{AMARELO}{NEGRITO}Venda registrada de {quantidade} unidades de '{produto_selecionado}' no valor total de {valor_venda_formatado} ({forma_pagamento}).{RESET}")
+                        print(f"{AMARELO}{NEGRITO}Estoque atual de '{produto_selecionado}': {estoque[produto_selecionado]['quantidade']}{RESET}")
+                    else:
+                        print("Opção de pagamento inválida. Venda cancelada.")
+                else:
+                    print("Estoque insuficiente para essa venda.")
+            else:
+                print("Opção inválida. Tente novamente.")
+        except ValueError:
+            print("Entrada inválida. Por favor, digite um número.")
+        
+        input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
+
+def enviar_email_com_anexo(assunto, corpo, destinatario, caminho_anexo):
+    """
+    Envia um e-mail com anexo.
+    Atenção: Requer a configuração de uma senha de app para o e-mail remetente.
+    """
+    remetente_email = EMAIL_REMETENTE
+    remetente_senha = SENHA_APP
+
+    msg = MIMEMultipart()
+    msg['From'] = remetente_email
+    msg['To'] = destinatario
+    msg['Subject'] = assunto
+
+    msg.attach(MIMEText(corpo, 'plain'))
+
+    try:
+        with open(caminho_anexo, 'rb') as anexo:
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(anexo.read())
+        
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f'attachment; filename="{os.path.basename(caminho_anexo)}"')
+        msg.attach(part)
+    except FileNotFoundError:
+        print(f"{VERMELHO}Aviso: Arquivo de anexo não encontrado: {caminho_anexo}{RESET}")
+        return
+
+    try:
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.login(remetente_email, remetente_senha)
+        server.sendmail(remetente_email, destinatario, msg.as_string())
+        server.quit()
+        print(f"{VERDE}E-mail com o relatório enviado para {destinatario} com sucesso.{RESET}")
+    except Exception as e:
+        print(f"{VERMELHO}Erro ao enviar o e-mail: {e}{RESET}")
+        print("Verifique suas credenciais de e-mail e as configurações de segurança.")
 
 def formatar_planilha_excel(caminho_arquivo):
     """Formata as planilhas do Excel para melhor visualização."""
@@ -583,7 +449,7 @@ def menu_gerar_relatorio(receitas, despesas, estoque):
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
         elif escolha == '4':
-            gerar_relatorio_vendas_diarias(receitas)
+            gerar_relatorio_vendas_diarias(receitas, enviar_automatico=False)
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
             
         elif escolha == '5':
@@ -681,26 +547,33 @@ def gerar_relatorios_estoque(estoque):
     else:
         print("O estoque está vazio. Não há dados para gerar o relatório.")
 
-def gerar_relatorio_vendas_diarias(receitas):
-    """Gera um relatório de vendas diárias com valores e forma de pagamento."""
+def gerar_relatorio_vendas_diarias(receitas, enviar_automatico=False):
+    """Gera um relatório de vendas diárias e, opcionalmente, o envia por e-mail."""
     subpasta = "Vendas_Diarias"
     caminho_subpasta = criar_subdiretorio(subpasta)
 
-    try:
-        data_relatorio = input("Digite a data do relatório (DD/MM/AAAA): ")
-        data_obj = datetime.datetime.strptime(data_relatorio, "%d/%m/%Y").date()
-    except ValueError:
-        print("Formato de data inválido. Use DD/MM/AAAA.")
-        return
+    if enviar_automatico:
+        data_relatorio_obj = datetime.date.today() - datetime.timedelta(days=1)
+        data_relatorio = data_relatorio_obj.strftime("%d/%m/%Y")
+        print(f"Gerando relatório automático para o dia {data_relatorio}...")
+    else:
+        try:
+            data_relatorio = input("Digite a data do relatório (DD/MM/AAAA): ")
+            data_relatorio_obj = datetime.datetime.strptime(data_relatorio, "%d/%m/%Y").date()
+        except ValueError:
+            print("Formato de data inválido. Use DD/MM/AAAA.")
+            return
 
     vendas_dia = [
         item for item in receitas
         if item.get('tipo') == 'receita' and 
-        datetime.datetime.strptime(item['data'], "%d/%m/%Y %H:%M:%S").date() == data_obj
+        datetime.datetime.strptime(item['data'], "%d/%m/%Y %H:%M:%S").date() == data_relatorio_obj
     ]
 
     if not vendas_dia:
         print(f"Não há vendas registradas para a data {data_relatorio}.")
+        if enviar_automatico:
+            print(f"E-mail automático não será enviado, pois não há vendas para {data_relatorio}.")
         return
 
     df_vendas_dia = pd.DataFrame(vendas_dia)
@@ -721,6 +594,21 @@ def gerar_relatorio_vendas_diarias(receitas):
 
     print(f"Relatório de vendas diárias para {data_relatorio} gerado com sucesso em '{caminho_arquivo}'")
 
+    if not enviar_automatico:
+        enviar_agora = input("Deseja enviar este relatório por e-mail agora? (s/n): ").lower()
+        if enviar_agora == 's':
+            destinatario = input("Digite o e-mail do destinatário: ")
+            assunto = f"Relatório de Vendas Diárias - {data_relatorio}"
+            corpo = f"""
+Prezado(a),
+
+Segue em anexo o relatório de vendas diárias da padaria referente ao dia {data_relatorio}.
+
+Atenciosamente,
+Sua Equipe
+"""
+            enviar_email_com_anexo(assunto, corpo, destinatario, caminho_arquivo)
+
 def main():
     """Função principal que inicia o programa."""
     limpar_tela()
@@ -736,7 +624,7 @@ def main():
         elif escolha == '2':
             gerenciar_estoque(receitas, despesas, estoque)
         elif escolha == '3':
-            menu_vendas(receitas, despesas, estoque)
+            gerenciar_vendas(receitas, despesas, estoque)
         elif escolha == '4':
             menu_gerar_relatorio(receitas, despesas, estoque)
         elif escolha == '5':
