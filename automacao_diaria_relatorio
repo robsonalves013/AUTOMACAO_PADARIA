@@ -1,0 +1,148 @@
+# automacao_diaria.py
+
+import os
+import datetime
+import json
+import locale
+import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.styles import PatternFill
+from openpyxl.utils import get_column_letter
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+
+# Configura o locale para português do Brasil
+try:
+    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+except locale.Error:
+    locale.setlocale(locale.LC_ALL, 'Portuguese_Brazil.1252')
+
+# --- Constantes do seu script principal ---
+DIRETORIO_DADOS = "relatorios_padaria"
+ASSINATURA = "Sistema desenvolvido por ROBSON ALVES"
+EMAIL_REMETENTE = 'padariamajurak@gmail.com' 
+SENHA_APP = 'sua_senha_de_app'
+
+# Importa ou recria as funções necessárias
+def carregar_dados():
+    """Carrega os dados de um arquivo JSON."""
+    caminho_arquivo = os.path.join(DIRETORIO_DADOS, 'dados_padaria.json')
+    try:
+        with open(caminho_arquivo, 'r') as f:
+            dados = json.load(f)
+            for item in dados['estoque'].values():
+                if 'categoria' not in item:
+                    item['categoria'] = 'Outros'
+            return dados['receitas'], dados['despesas'], dados['estoque']
+    except FileNotFoundError:
+        print("Arquivo de dados não encontrado. Impossível gerar relatório.")
+        return [], [], {}
+
+def verificar_diretorio():
+    """Cria o diretório de dados se ele não existir."""
+    if not os.path.exists(DIRETORIO_DADOS):
+        os.makedirs(DIRETORIO_DADOS)
+
+def criar_subdiretorio(subpasta):
+    """Cria um subdiretório dentro do diretório de dados se ele não existir."""
+    caminho_completo = os.path.join(DIRETORIO_DADOS, subpasta)
+    if not os.path.exists(caminho_completo):
+        os.makedirs(caminho_completo)
+    return caminho_completo
+
+def enviar_email_com_anexo(assunto, corpo, destinatario, caminho_anexo):
+    """Envia um e-mail com anexo."""
+    remetente_email = EMAIL_REMETENTE
+    remetente_senha = SENHA_APP
+
+    msg = MIMEMultipart()
+    msg['From'] = remetente_email
+    msg['To'] = destinatario
+    msg['Subject'] = assunto
+
+    msg.attach(MIMEText(corpo, 'plain'))
+
+    try:
+        with open(caminho_anexo, 'rb') as anexo:
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(anexo.read())
+        
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f'attachment; filename="{os.path.basename(caminho_anexo)}"')
+        msg.attach(part)
+    except FileNotFoundError:
+        print(f"Aviso: Arquivo de anexo não encontrado: {caminho_anexo}")
+        return
+
+    try:
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server.login(remetente_email, remetente_senha)
+        server.sendmail(remetente_email, destinatario, msg.as_string())
+        server.quit()
+        print(f"E-mail com o relatório enviado para {destinatario} com sucesso.")
+    except Exception as e:
+        print(f"Erro ao enviar o e-mail: {e}")
+        print("Verifique suas credenciais de e-mail e as configurações de segurança.")
+
+def formatar_planilha_excel(caminho_arquivo):
+    """Formata as planilhas do Excel para melhor visualização."""
+    # (Copie o código da sua função original aqui)
+
+def adicionar_assinatura_excel(caminho_arquivo):
+    """Adiciona a assinatura de desenvolvimento no rodapé de cada planilha."""
+    # (Copie o código da sua função original aqui)
+
+def gerar_relatorio_vendas_diarias_automatica():
+    """Gera e envia o relatório de vendas diárias de forma automática."""
+    receitas, _, _ = carregar_dados()
+    if not receitas:
+        return # Não faz nada se não houver dados.
+
+    subpasta = "Vendas_Diarias"
+    caminho_subpasta = criar_subdiretorio(subpasta)
+    
+    data_relatorio_obj = datetime.date.today() - datetime.timedelta(days=1)
+    data_relatorio = data_relatorio_obj.strftime("%d/%m/%Y")
+    
+    vendas_dia = [
+        item for item in receitas
+        if item.get('tipo') == 'receita' and 
+        datetime.datetime.strptime(item['data'], "%d/%m/%Y %H:%M:%S").date() == data_relatorio_obj
+    ]
+
+    if not vendas_dia:
+        print(f"Não há vendas registradas para o dia {data_relatorio}. Nenhum e-mail será enviado.")
+        return
+
+    df_vendas_dia = pd.DataFrame(vendas_dia)
+    relatorio_agregado = df_vendas_dia.groupby('forma_pagamento')['valor'].sum().reset_index()
+    total_vendas = relatorio_agregado['valor'].sum()
+    relatorio_agregado.loc[len(relatorio_agregado)] = ['Total Geral', total_vendas]
+
+    caminho_arquivo = os.path.join(caminho_subpasta, f"Relatorio_de_Vendas_Diarias_{data_relatorio.replace('/', '-')}.xlsx")
+
+    with pd.ExcelWriter(caminho_arquivo, engine='openpyxl') as writer:
+        relatorio_agregado.to_excel(writer, sheet_name='Vendas Diárias', index=False)
+        df_vendas_dia.to_excel(writer, sheet_name='Detalhes', index=False)
+
+    formatar_planilha_excel(caminho_arquivo)
+    adicionar_assinatura_excel(caminho_arquivo)
+    
+    destinatario = 'padariamajurak@gmail.com'
+    assunto = f"Relatório de Vendas Diárias - {data_relatorio}"
+    corpo = f"""
+Prezado(a),
+
+Segue em anexo o relatório de vendas diárias da padaria referente ao dia {data_relatorio}.
+
+Atenciosamente,
+Sua Equipe
+"""
+    enviar_email_com_anexo(assunto, corpo, destinatario, caminho_arquivo)
+
+if __name__ == '__main__':
+    verificar_diretorio()
+    gerar_relatorio_vendas_diarias_automatica()
