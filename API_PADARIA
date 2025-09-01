@@ -1,0 +1,201 @@
+from flask import Flask, jsonify, request
+import datetime
+import pandas as pd
+import json
+import locale
+import os
+from collections import defaultdict
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+
+# --- CÓDIGOS E FUNÇÕES DO SEU SCRIPT ORIGINAL ---
+# (Copie e cole todas as suas funções daqui)
+# carregar_dados, salvar_dados, verificar_diretorio, etc.
+# A única diferença é que as funções não vão mais chamar `input()` ou `print()`,
+# elas retornarão os dados ou status de sucesso/erro.
+
+# Diretório para salvar os arquivos e subpastas
+DIRETORIO_DADOS = "relatorios_padaria"
+ASSINATURA = "Sistema desenvolvido por ROBSON ALVES"
+EMAIL_REMETENTE = 'padariamajurak@gmail.com'
+SENHA_APP = 'sua_senha_de_app'
+
+try:
+    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+except locale.Error:
+    locale.setlocale(locale.LC_ALL, 'Portuguese_Brazil.1252')
+
+def verificar_diretorio():
+    if not os.path.exists(DIRETORIO_DADOS):
+        os.makedirs(DIRETORIO_DADOS)
+
+def carregar_dados():
+    verificar_diretorio()
+    caminho_arquivo = os.path.join(DIRETORIO_DADOS, 'dados_padaria.json')
+    try:
+        with open(caminho_arquivo, 'r') as f:
+            dados = json.load(f)
+            for item in dados['estoque'].values():
+                if 'categoria' not in item:
+                    item['categoria'] = 'Outros'
+            return dados['receitas'], dados['despesas'], dados['estoque']
+    except FileNotFoundError:
+        receitas_exemplo = []
+        despesas_exemplo = []
+        estoque_exemplo = {
+            'pão francês': {'quantidade': 100, 'valor_unitario': 0.50, 'categoria': 'Pães'},
+            'pão de queijo': {'quantidade': 50, 'valor_unitario': 3.00, 'categoria': 'Pães'},
+            'bolo de chocolate': {'quantidade': 10, 'valor_unitario': 25.00, 'categoria': 'Doces'},
+            'torta de limão': {'quantidade': 8, 'valor_unitario': 30.00, 'categoria': 'Doces'},
+            'café expresso': {'quantidade': 100, 'valor_unitario': 4.50, 'categoria': 'Bebidas'},
+            'suco de laranja': {'quantidade': 20, 'valor_unitario': 6.00, 'categoria': 'Bebidas'}
+        }
+        salvar_dados(receitas_exemplo, despesas_exemplo, estoque_exemplo)
+        return receitas_exemplo, despesas_exemplo, estoque_exemplo
+
+def salvar_dados(receitas, despesas, estoque):
+    verificar_diretorio()
+    caminho_arquivo = os.path.join(DIRETORIO_DADOS, 'dados_padaria.json')
+    dados = {
+        'receitas': receitas,
+        'despesas': despesas,
+        'estoque': estoque
+    }
+    with open(caminho_arquivo, 'w') as f:
+        json.dump(dados, f, indent=4)
+
+def adicionar_receita_manual(valor, descricao):
+    receitas, despesas, estoque = carregar_dados()
+    agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    receitas.append({'descricao': descricao, 'valor': valor, 'data': agora, 'tipo': 'receita', 'forma_pagamento': 'Manual'})
+    salvar_dados(receitas, despesas, estoque)
+    return {"status": "success", "message": "Receita adicionada com sucesso."}
+
+def adicionar_despesa(valor, descricao):
+    receitas, despesas, estoque = carregar_dados()
+    agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    despesas.append({'descricao': descricao, 'valor': valor, 'data': agora, 'tipo': 'despesa'})
+    salvar_dados(receitas, despesas, estoque)
+    return {"status": "success", "message": "Despesa adicionada com sucesso."}
+
+def vender_produto(produto, quantidade, forma_pagamento):
+    receitas, despesas, estoque = carregar_dados()
+    if produto not in estoque or estoque[produto]['quantidade'] < quantidade:
+        return {"status": "error", "message": "Estoque insuficiente ou produto não encontrado."}
+    
+    estoque[produto]['quantidade'] -= quantidade
+    valor_venda = quantidade * estoque[produto]['valor_unitario']
+    agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    receitas.append({
+        'descricao': f"Venda de {quantidade} und. de {produto}",
+        'valor': valor_venda,
+        'data': agora,
+        'tipo': 'receita',
+        'forma_pagamento': forma_pagamento
+    })
+    salvar_dados(receitas, despesas, estoque)
+    return {"status": "success", "message": "Venda registrada com sucesso.", "valor_venda": valor_venda}
+
+def get_estoque():
+    _, _, estoque = carregar_dados()
+    return estoque
+
+def get_fluxo_caixa():
+    receitas, despesas, _ = carregar_dados()
+    total_receitas = sum(item['valor'] for item in receitas)
+    total_despesas = sum(item['valor'] for item in despesas)
+    saldo = total_receitas - total_despesas
+    return {
+        "total_receitas": total_receitas,
+        "total_despesas": total_despesas,
+        "saldo": saldo,
+        "receitas": receitas,
+        "despesas": despesas
+    }
+
+# --- APLICAÇÃO FLASK ---
+app = Flask(__name__)
+
+# Rota de teste
+@app.route('/')
+def home():
+    return jsonify({"message": "API da Padaria Funcionando!"})
+
+# Rota para ver o estoque
+@app.route('/estoque', methods=['GET'])
+def get_estoque_api():
+    estoque = get_estoque()
+    return jsonify(estoque)
+
+# Rota para ver o fluxo de caixa
+@app.route('/fluxo-caixa', methods=['GET'])
+def get_fluxo_caixa_api():
+    fluxo = get_fluxo_caixa()
+    return jsonify(fluxo)
+
+# Rota para registrar uma venda
+@app.route('/venda', methods=['POST'])
+def registrar_venda_api():
+    data = request.get_json()
+    produto = data.get('produto')
+    quantidade = data.get('quantidade')
+    forma_pagamento = data.get('forma_pagamento')
+
+    if not all([produto, quantidade, forma_pagamento]):
+        return jsonify({"status": "error", "message": "Dados incompletos."}), 400
+
+    if not isinstance(quantidade, (int, float)) or quantidade <= 0:
+        return jsonify({"status": "error", "message": "Quantidade inválida."}), 400
+
+    # Lógica de venda
+    resultado = vender_produto(produto, quantidade, forma_pagamento)
+    
+    if resultado['status'] == 'error':
+        return jsonify(resultado), 400
+    
+    # Exemplo de cálculo de troco, se a forma de pagamento for dinheiro
+    valor_recebido = data.get('valor_recebido')
+    if forma_pagamento.lower() == 'dinheiro' and valor_recebido is not None:
+        troco = valor_recebido - resultado['valor_venda']
+        resultado['troco'] = troco
+        
+    return jsonify(resultado)
+
+# Rota para adicionar uma receita manual
+@app.route('/receita', methods=['POST'])
+def adicionar_receita_api():
+    data = request.get_json()
+    valor = data.get('valor')
+    descricao = data.get('descricao')
+
+    if not all([valor, descricao]):
+        return jsonify({"status": "error", "message": "Dados incompletos."}), 400
+    
+    if not isinstance(valor, (int, float)) or valor <= 0:
+        return jsonify({"status": "error", "message": "Valor inválido."}), 400
+
+    resultado = adicionar_receita_manual(valor, descricao)
+    return jsonify(resultado)
+
+# Rota para adicionar uma despesa
+@app.route('/despesa', methods=['POST'])
+def adicionar_despesa_api():
+    data = request.get_json()
+    valor = data.get('valor')
+    descricao = data.get('descricao')
+
+    if not all([valor, descricao]):
+        return jsonify({"status": "error", "message": "Dados incompletos."}), 400
+    
+    if not isinstance(valor, (int, float)) or valor <= 0:
+        return jsonify({"status": "error", "message": "Valor inválido."}), 400
+
+    resultado = adicionar_despesa(valor, descricao)
+    return jsonify(resultado)
+
+if __name__ == '__main__':
+    verificar_diretorio()
+    app.run(debug=True) # `debug=True` reinicia o servidor automaticamente em caso de mudanças
