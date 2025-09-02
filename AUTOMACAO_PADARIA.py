@@ -347,18 +347,20 @@ def enviar_email_com_anexo(assunto, corpo, destinatario, caminho_anexo):
 
     msg.attach(MIMEText(corpo, 'plain'))
 
-    try:
-        with open(caminho_anexo, 'rb') as anexo:
-            part = MIMEBase('application', 'octet-stream')
-            part.set_payload(anexo.read())
-        
-        encoders.encode_base64(part)
-        part.add_header('Content-Disposition', f'attachment; filename="{os.path.basename(caminho_anexo)}"')
-        msg.attach(part)
-    except FileNotFoundError:
+    if caminho_anexo and os.path.exists(caminho_anexo):
+        try:
+            with open(caminho_anexo, 'rb') as anexo:
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(anexo.read())
+            
+            encoders.encode_base64(part)
+            part.add_header('Content-Disposition', f'attachment; filename="{os.path.basename(caminho_anexo)}"')
+            msg.attach(part)
+        except Exception as e:
+            print(f"{VERMELHO}Aviso: Erro ao anexar o arquivo: {e}{RESET}")
+    elif caminho_anexo:
         print(f"{VERMELHO}Aviso: Arquivo de anexo não encontrado: {caminho_anexo}{RESET}")
-        return
-
+        
     try:
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
         server.login(remetente_email, remetente_senha)
@@ -445,7 +447,7 @@ def menu_gerar_relatorio(receitas, despesas, estoque):
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
         elif escolha == '3':
-            gerar_relatorios_estoque(estoque)
+            gerar_atorios_estoque(estoque)
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
         elif escolha == '4':
@@ -609,11 +611,48 @@ Sua Equipe
 """
             enviar_email_com_anexo(assunto, corpo, destinatario, caminho_arquivo)
 
+def verificar_e_enviar_alerta_estoque(estoque):
+    """
+    Verifica o estoque e envia um e-mail de alerta para itens com quantidade baixa.
+    O e-mail é enviado se a quantidade de um produto for menor ou igual a 10.
+    """
+    itens_em_falta = []
+    for produto, dados in estoque.items():
+        if dados['quantidade'] <= 10:
+            itens_em_falta.append(f"{produto.capitalize()} ({dados['quantidade']} unidades)")
+
+    if itens_em_falta:
+        destinatario = 'seu_email_para_receber_alertas@exemplo.com'  # Troque pelo seu e-mail
+        assunto = "ALERTA DE REPOSIÇÃO DE ESTOQUE"
+        corpo = f"""
+Prezado(a),
+
+Segue a lista de itens que precisam de reposição, pois o estoque está baixo (<= 10 unidades):
+
+{'\n'.join(itens_em_falta)}
+
+Por favor, providencie a reposição o mais breve possível.
+
+Atenciosamente,
+Sistema de Gestão
+"""
+        enviar_email_com_anexo(assunto, corpo, destinatario, None)
+    else:
+        print("Nenhum alerta de estoque necessário no momento.")
+
+
 def main():
     """Função principal que inicia o programa."""
     limpar_tela()
     mostrar_logo_inicial()
     receitas, despesas, estoque = carregar_dados()
+
+    # --- Lógica de Alerta de Estoque ---
+    hoje = datetime.date.today()
+    if hoje.weekday() in [1, 3]:  # 1 = Terça-feira, 3 = Quinta-feira
+        print("\nVerificando estoque para alertas...")
+        verificar_e_enviar_alerta_estoque(estoque)
+    # --- Fim da Lógica de Alerta ---
 
     while True:
         mostrar_menu()
