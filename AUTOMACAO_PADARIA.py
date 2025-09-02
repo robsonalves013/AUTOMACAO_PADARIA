@@ -30,7 +30,7 @@ except locale.Error:
 
 # Diretório para salvar os arquivos e subpastas
 DIRETORIO_DADOS = "relatorios_padaria"
-ASSINATURA = "Sistema desenvolvido por ROBSON ALVES"
+ASSINATURA = "Sistema Desenvolvido por ROBSON ALVES"
 
 # --- Configurações do e-mail (ATUALIZAR COM SUAS INFORMAÇÕES) ---
 EMAIL_REMETENTE = 'padariamajurak@gmail.com'  # Troque pelo seu e-mail
@@ -607,7 +607,7 @@ Prezado(a),
 Segue em anexo o relatório de vendas diárias da padaria referente ao dia {data_relatorio}.
 
 Atenciosamente,
-Sua Equipe
+Padaria Majurak
 """
             enviar_email_com_anexo(assunto, corpo, destinatario, caminho_arquivo)
 
@@ -622,7 +622,7 @@ def verificar_e_enviar_alerta_estoque(estoque):
             itens_em_falta.append(f"{produto.capitalize()} ({dados['quantidade']} unidades)")
 
     if itens_em_falta:
-        destinatario = 'seu_email_para_receber_alertas@exemplo.com'  # Troque pelo seu e-mail
+        destinatario = 'padariamajurak@gmail.com'  # Troque pelo seu e-mail
         assunto = "ALERTA DE REPOSIÇÃO DE ESTOQUE"
         corpo = f"""
 Prezado(a),
@@ -679,3 +679,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
