@@ -30,7 +30,7 @@ except locale.Error:
 
 # Diretório para salvar os arquivos e subpastas
 DIRETORIO_DADOS = "relatorios_padaria"
-ASSINATURA = "Sistema Desenvolvido por ROBSON ALVES"
+ASSINATURA = "Sistema desenvolvido por ROBSON ALVES"
 
 # --- Configurações do e-mail (ATUALIZAR COM SUAS INFORMAÇÕES) ---
 EMAIL_REMETENTE = 'padariamajurak@gmail.com'  # Troque pelo seu e-mail
@@ -172,15 +172,49 @@ def gerenciar_fluxo_caixa(receitas, despesas, estoque):
             print("Opção inválida. Tente novamente.")
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
+def adicionar_multiplos_produtos(receitas, despesas, estoque):
+    """Permite adicionar vários produtos ao estoque de uma só vez."""
+    print(f"\n{AMARELO}#### Adicionar Múltiplos Produtos ####{RESET}")
+    print("Digite 'sair' a qualquer momento para finalizar o cadastro.")
+
+    while True:
+        produto = input("\nNome do produto: ").lower()
+        if produto == 'sair':
+            break
+
+        try:
+            quantidade = int(input("Quantidade a adicionar: "))
+            if quantidade <= 0:
+                print("Quantidade inválida. Tente novamente.")
+                continue
+
+            valor_unitario = float(input(f"Valor unitário de '{produto}': "))
+            categoria = input(f"Categoria de '{produto}': ")
+
+            if produto in estoque:
+                estoque[produto]['quantidade'] += quantidade
+                estoque[produto]['valor_unitario'] = valor_unitario
+                estoque[produto]['categoria'] = categoria
+            else:
+                estoque[produto] = {'quantidade': quantidade, 'valor_unitario': valor_unitario, 'categoria': categoria}
+            
+            print(f"Produto '{produto.capitalize()}' adicionado com sucesso!")
+        except ValueError:
+            print(f"{VERMELHO}Entrada inválida. Por favor, use números para quantidade e valor.{RESET}")
+        
+    salvar_dados(receitas, despesas, estoque)
+    input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
+
 def gerenciar_estoque(receitas, despesas, estoque):
     """Gerencia as operações de estoque."""
     while True:
         limpar_tela()
         print(f"\n{AMARELO}#### Gerenciar Estoque ####{RESET}")
-        print("1. Adicionar Produto (Entrada)")
-        print("2. Ver Estoque Atual")
-        print("3. Mudar Categoria de Produto")
-        print(f"4. {AZUL}{NEGRITO}Voltar ao Menu Principal{RESET}")
+        print("1. Adicionar Produto (Entrada Individual)")
+        print("2. Adicionar Múltiplos Produtos (Entrada em Lote)")
+        print("3. Ver Estoque Atual")
+        print("4. Mudar Categoria de Produto")
+        print(f"5. {AZUL}{NEGRITO}Voltar ao Menu Principal{RESET}")
         escolha = input("Escolha uma opção: ")
 
         if escolha == '1':
@@ -203,6 +237,9 @@ def gerenciar_estoque(receitas, despesas, estoque):
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
         elif escolha == '2':
+            adicionar_multiplos_produtos(receitas, despesas, estoque)
+
+        elif escolha == '3':
             print(f"\n{AMARELO}#### Estoque Atual ####{RESET}")
             if not estoque:
                 print("O estoque está vazio.")
@@ -213,7 +250,7 @@ def gerenciar_estoque(receitas, despesas, estoque):
                     print(f"- {NEGRITO}{produto.capitalize()}{RESET} ({categoria}): {dados['quantidade']} unidades ({valor_unitario_formatado} cada)")
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
-        elif escolha == '3':
+        elif escolha == '4':
             if not estoque:
                 print("O estoque está vazio. Não há produtos para mudar de categoria.")
                 input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
@@ -240,7 +277,7 @@ def gerenciar_estoque(receitas, despesas, estoque):
                 print("Entrada inválida. Por favor, digite um número.")
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
-        elif escolha == '4':
+        elif escolha == '5':
             break
 
         else:
@@ -447,7 +484,7 @@ def menu_gerar_relatorio(receitas, despesas, estoque):
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
         elif escolha == '3':
-            gerar_atorios_estoque(estoque)
+            gerar_relatorios_estoque(estoque)
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
         elif escolha == '4':
@@ -607,7 +644,7 @@ Prezado(a),
 Segue em anexo o relatório de vendas diárias da padaria referente ao dia {data_relatorio}.
 
 Atenciosamente,
-Padaria Majurak
+Sua Equipe
 """
             enviar_email_com_anexo(assunto, corpo, destinatario, caminho_arquivo)
 
@@ -622,7 +659,7 @@ def verificar_e_enviar_alerta_estoque(estoque):
             itens_em_falta.append(f"{produto.capitalize()} ({dados['quantidade']} unidades)")
 
     if itens_em_falta:
-        destinatario = 'padariamajurak@gmail.com'  # Troque pelo seu e-mail
+        destinatario = 'seu_email_para_receber_alertas@exemplo.com'  # Troque pelo seu e-mail
         assunto = "ALERTA DE REPOSIÇÃO DE ESTOQUE"
         corpo = f"""
 Prezado(a),
@@ -639,7 +676,6 @@ Sistema de Gestão
         enviar_email_com_anexo(assunto, corpo, destinatario, None)
     else:
         print("Nenhum alerta de estoque necessário no momento.")
-
 
 def main():
     """Função principal que inicia o programa."""
@@ -679,4 +715,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
