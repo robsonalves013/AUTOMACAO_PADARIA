@@ -1,0 +1,29 @@
+def verificar_e_enviar_alerta_estoque(estoque):
+    """
+    Verifica o estoque e envia um e-mail de alerta para itens com quantidade baixa.
+    O e-mail é enviado se a quantidade de um produto for menor ou igual a 10.
+    """
+    itens_em_falta = []
+    for produto, dados in estoque.items():
+        if dados['quantidade'] <= 10:
+            itens_em_falta.append(f"{produto.capitalize()} ({dados['quantidade']} unidades)")
+
+    if itens_em_falta:
+        destinatario = 'seu_email_para_receber_alertas@exemplo.com'  # Troque pelo seu e-mail
+        assunto = "ALERTA DE REPOSIÇÃO DE ESTOQUE"
+        corpo = f"""
+Prezado(a),
+
+Segue a lista de itens que precisam de reposição, pois o estoque está baixo (<= 10 unidades):
+
+{'\n'.join(itens_em_falta)}
+
+Por favor, providencie a reposição o mais breve possível.
+
+Atenciosamente,
+Sistema de Gestão
+"""
+        # O caminho do anexo pode ser None, já que não estamos anexando um arquivo aqui
+        enviar_email_com_anexo(assunto, corpo, destinatario, None)
+    else:
+        print("Nenhum alerta de estoque necessário no momento.")
