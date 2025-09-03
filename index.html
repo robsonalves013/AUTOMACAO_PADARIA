@@ -39,7 +39,13 @@
                 <form id="form-venda-delivery">
                     <input type="text" id="venda-delivery-codigo" placeholder="Código de Barras ou Número do Item" required>
                     <input type="number" id="venda-delivery-quantidade" placeholder="Quantidade" required min="1">
-                    <input type="text" id="venda-delivery-plataforma" placeholder="Plataforma (ex: Ifood, Rappi)" required>
+                    <select id="venda-delivery-plataforma" required>
+                        <option value="">Selecione a Plataforma</option>
+                        <option value="Ifood">Ifood</option>
+                        <option value="Rappi">Rappi</option>
+                        <option value="Uber Eats">Uber Eats</option>
+                        <option value="Outra">Outra</option>
+                    </select>
                     <button type="submit">Registrar Venda Delivery</button>
                 </form>
             </div>
