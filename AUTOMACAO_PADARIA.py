@@ -5,10 +5,12 @@ import locale
 import os
 import time
 from openpyxl import load_workbook
+from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 from openpyxl.utils import get_column_letter
 from collections import defaultdict
 import smtplib
+from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email import encoders
@@ -88,7 +90,7 @@ def salvar_dados(receitas, despesas, estoque):
 def mostrar_logo_inicial():
     """Exibe a mensagem de abertura do script."""
     print("=" * 40)
-    print(f"{AZUL}{NEGRITO}{'SISTEMA DE GESTÃO PARA PADARIA':^40}{RESET}")
+    print(f"{AZUL}{NEGRITO}{'SISTEMA DE GESTÃO DA PADARIA MAJURAK':^40}{RESET}")
     print("=" * 40)
     print(f"{AZUL}{NEGRITO}{ASSINATURA:^40}{RESET}")
     print("=" * 40)
@@ -561,32 +563,35 @@ def enviar_email_com_anexo(assunto, corpo, destinatario, caminho_anexo):
     Envia um e-mail com anexo.
     Atenção: Requer a configuração de uma senha de app para o e-mail remetente.
     """
-    remetente_email = EMAIL_REMETENTE
-    remetente_senha = SENHA_APP
+    remetente_email = 'robtechservice@outlook.com'
+    # Esta senha é um placeholder. Em produção, use variáveis de ambiente.
+    remetente_senha = 'ioohmnnkugrsulss'
 
     msg = MIMEMultipart()
     msg['From'] = remetente_email
     msg['To'] = destinatario
     msg['Subject'] = assunto
-
+    
     msg.attach(MIMEText(corpo, 'plain'))
 
     if caminho_anexo and os.path.exists(caminho_anexo):
         try:
             with open(caminho_anexo, 'rb') as anexo:
-                part = MIMEMultipart._Message() # Corrigido o tipo para MIMEMultipart
+                # Cria um objeto MIMEBase para o anexo
+                part = MIMEBase('application', 'octet-stream')
                 part.set_payload(anexo.read())
             
             encoders.encode_base64(part)
+            # Adiciona o cabeçalho 'Content-Disposition' para o anexo
             part.add_header('Content-Disposition', f'attachment; filename="{os.path.basename(caminho_anexo)}"')
             msg.attach(part)
         except Exception as e:
             print(f"{VERMELHO}Aviso: Erro ao anexar o arquivo: {e}{RESET}")
     elif caminho_anexo:
         print(f"{VERMELHO}Aviso: Arquivo de anexo não encontrado: {caminho_anexo}{RESET}")
-        
+    
     try:
-        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+        server = smtplib.SMTP_SSL('smtp-mail.outlook.com', 465)
         server.login(remetente_email, remetente_senha)
         server.sendmail(remetente_email, destinatario, msg.as_string())
         server.quit()
@@ -608,7 +613,7 @@ def formatar_planilha_excel(caminho_arquivo):
                     try:
                         if len(str(cell.value)) > max_length:
                             max_length = len(str(cell.value))
-                    except:
+                    except (TypeError, ValueError):
                         pass
                 adjusted_width = (max_length + 2)
                 worksheet.column_dimensions[column_letter].width = adjusted_width
@@ -618,14 +623,45 @@ def formatar_planilha_excel(caminho_arquivo):
                 try:
                     col_index = header.index('valor') + 1
                 except ValueError:
-                    col_index = header.index('Valor') + 1
-                for row in worksheet.iter_rows(min_row=2, max_col=col_index, max_row=worksheet.max_row):
-                    cell = row[col_index - 1]
-                    cell.number_format = 'R$ #,##0.00'
+                    try:
+                        col_index = header.index('Valor') + 1
+                    except ValueError:
+                        col_index = None
+                
+                if col_index:
+                    for row in worksheet.iter_rows(min_row=2, max_col=col_index, max_row=worksheet.max_row):
+                        cell = row[col_index - 1]
+                        cell.number_format = 'R$ #,##0.00'
         workbook.save(caminho_arquivo)
+        print(f"{VERDE}Planilha formatada com sucesso: {caminho_arquivo}{RESET}")
     except Exception as e:
-        print(f"Erro ao formatar o arquivo Excel: {e}")
+        print(f"{VERMELHO}Erro ao formatar o arquivo Excel: {e}{RESET}")
 
+# Exemplo de uso (crie um arquivo de exemplo para testar)
+if __name__ == "__main__":
+    # Cria um arquivo Excel de teste para a função de formatação
+    test_file_path = "relatorio_teste.xlsx"
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Dados de Vendas"
+    ws.append(["ID", "Produto", "Valor"])
+    ws.append([1, "Caneta", 1.50])
+    ws.append([2, "Caderno", 25.75])
+    ws.append([3, "Mochila escolar", 150.00])
+    wb.save(test_file_path)
+
+    print("--- Testando a formatação da planilha ---")
+    formatar_planilha_excel(test_file_path)
+
+    # Exemplo de uso da função de envio de e-mail
+    print("\n--- Testando o envio de e-mail ---")
+    destinatario_exemplo = 'padariamajurak@gmail.com'  # Altere para o seu e-mail de teste
+    assunto_exemplo = "Relatório Diário"
+    corpo_exemplo = "Olá, segue em anexo o relatório diário de vendas."
+    
+    # A função irá tentar enviar um e-mail com o arquivo que acabamos de criar
+    enviar_email_com_anexo(assunto_exemplo, corpo_exemplo, destinatario_exemplo, test_file_path)
+    
 def adicionar_assinatura_excel(caminho_arquivo):
     """Adiciona a assinatura de desenvolvimento no rodapé de cada planilha."""
     try:
