@@ -11,7 +11,6 @@ from collections import defaultdict
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
 from email import encoders
 
 # --- Códigos ANSI para cores ---
@@ -34,7 +33,7 @@ ASSINATURA = "Sistema desenvolvido por ROBSON ALVES"
 
 # --- Configurações do e-mail (ATUALIZAR COM SUAS INFORMAÇÕES) ---
 EMAIL_REMETENTE = 'padariamajurak@gmail.com'  # Troque pelo seu e-mail
-SENHA_APP = 'sua_senha_de_app'                # Troque pela sua senha de app
+SENHA_APP = 'sua_senha_de_app'                  # Troque pela sua senha de app
 
 def verificar_diretorio():
     """Cria o diretório de dados se ele não existir."""
@@ -53,20 +52,21 @@ def carregar_dados():
     try:
         with open(caminho_arquivo, 'r') as f:
             dados = json.load(f)
-            for item in dados['estoque'].values():
-                if 'categoria' not in item:
-                    item['categoria'] = 'Outros'
+            # Adiciona 'descricao' se não existir para compatibilidade
+            for key in dados['estoque'].keys():
+                if 'descricao' not in dados['estoque'][key]:
+                    dados['estoque'][key]['descricao'] = key
             return dados['receitas'], dados['despesas'], dados['estoque']
     except FileNotFoundError:
         receitas_exemplo = []
         despesas_exemplo = []
         estoque_exemplo = {
-            'pão francês': {'quantidade': 100, 'valor_unitario': 0.50, 'categoria': 'Pães'},
-            'pão de queijo': {'quantidade': 50, 'valor_unitario': 3.00, 'categoria': 'Pães'},
-            'bolo de chocolate': {'quantidade': 10, 'valor_unitario': 25.00, 'categoria': 'Doces'},
-            'torta de limão': {'quantidade': 8, 'valor_unitario': 30.00, 'categoria': 'Doces'},
-            'café expresso': {'quantidade': 100, 'valor_unitario': 4.50, 'categoria': 'Bebidas'},
-            'suco de laranja': {'quantidade': 20, 'valor_unitario': 6.00, 'categoria': 'Bebidas'}
+            '123456789': {'descricao': 'pão francês', 'quantidade': 100, 'valor_unitario': 0.50, 'categoria': 'Pães'},
+            '987654321': {'descricao': 'pão de queijo', 'quantidade': 50, 'valor_unitario': 3.00, 'categoria': 'Pães'},
+            '456789123': {'descricao': 'bolo de chocolate', 'quantidade': 10, 'valor_unitario': 25.00, 'categoria': 'Doces'},
+            '789123456': {'descricao': 'torta de limão', 'quantidade': 8, 'valor_unitario': 30.00, 'categoria': 'Doces'},
+            '111222333': {'descricao': 'café expresso', 'quantidade': 100, 'valor_unitario': 4.50, 'categoria': 'Bebidas'},
+            '444555666': {'descricao': 'suco de laranja', 'quantidade': 20, 'valor_unitario': 6.00, 'categoria': 'Bebidas'}
         }
         print("Arquivo de dados não encontrado. Criando um novo com dados de exemplo...")
         salvar_dados(receitas_exemplo, despesas_exemplo, estoque_exemplo)
@@ -178,31 +178,85 @@ def adicionar_multiplos_produtos(receitas, despesas, estoque):
     print("Digite 'sair' a qualquer momento para finalizar o cadastro.")
 
     while True:
-        produto = input("\nNome do produto: ").lower()
-        if produto == 'sair':
+        codigo_barras = input("\nCódigo de Barras do produto: ").strip()
+        if codigo_barras.lower() == 'sair':
             break
 
         try:
+            descricao = input(f"Descrição do produto (ex: Pão Francês): ")
             quantidade = int(input("Quantidade a adicionar: "))
             if quantidade <= 0:
                 print("Quantidade inválida. Tente novamente.")
                 continue
 
-            valor_unitario = float(input(f"Valor unitário de '{produto}': "))
-            categoria = input(f"Categoria de '{produto}': ")
+            valor_unitario = float(input(f"Valor unitário de '{descricao}': "))
+            categoria = input(f"Categoria de '{descricao}': ")
 
-            if produto in estoque:
-                estoque[produto]['quantidade'] += quantidade
-                estoque[produto]['valor_unitario'] = valor_unitario
-                estoque[produto]['categoria'] = categoria
+            if codigo_barras in estoque:
+                estoque[codigo_barras]['quantidade'] += quantidade
+                estoque[codigo_barras]['valor_unitario'] = valor_unitario
+                estoque[codigo_barras]['categoria'] = categoria
+                estoque[codigo_barras]['descricao'] = descricao.lower()
             else:
-                estoque[produto] = {'quantidade': quantidade, 'valor_unitario': valor_unitario, 'categoria': categoria}
+                estoque[codigo_barras] = {'descricao': descricao.lower(), 'quantidade': quantidade, 'valor_unitario': valor_unitario, 'categoria': categoria}
             
-            print(f"Produto '{produto.capitalize()}' adicionado com sucesso!")
+            print(f"Produto '{descricao}' adicionado/atualizado com sucesso!")
         except ValueError:
             print(f"{VERMELHO}Entrada inválida. Por favor, use números para quantidade e valor.{RESET}")
         
     salvar_dados(receitas, despesas, estoque)
+    input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
+
+def adicionar_produto_por_codigo(receitas, despesas, estoque):
+    """Permite adicionar um novo produto ao estoque usando um leitor de código de barras."""
+    limpar_tela()
+    print(f"\n{AMARELO}#### Adicionar Produto por Código de Barras ####{RESET}")
+    print("Bipe o código de barras do produto ou digite-o manualmente.")
+    print("Digite 'sair' a qualquer momento para voltar.")
+
+    codigo_barras = input("\nCódigo de Barras: ").strip()
+    if codigo_barras.lower() == 'sair':
+        return
+
+    # A chave do dicionário será o próprio código de barras
+    if codigo_barras in estoque:
+        print(f"\n{VERMELHO}{NEGRITO}Este produto já está cadastrado no estoque!{RESET}")
+        descricao_produto = estoque[codigo_barras].get('descricao', 'N/A')
+        print(f"Produto: {descricao_produto}")
+        print(f"Quantidade atual: {estoque[codigo_barras]['quantidade']}")
+        print(f"Valor: {locale.currency(estoque[codigo_barras]['valor_unitario'], grouping=True)}")
+
+        resposta = input("Deseja apenas atualizar a quantidade? (s/n): ").lower()
+        if resposta == 's':
+            try:
+                quantidade_adicional = int(input("Digite a quantidade a ser adicionada: "))
+                if quantidade_adicional > 0:
+                    estoque[codigo_barras]['quantidade'] += quantidade_adicional
+                    salvar_dados(receitas, despesas, estoque)
+                    print(f"\n{VERDE}Quantidade atualizada com sucesso!{RESET}")
+                else:
+                    print(f"{VERMELHO}Quantidade inválida.{RESET}")
+            except ValueError:
+                print(f"{VERMELHO}Entrada inválida. Por favor, digite um número inteiro.{RESET}")
+    else:
+        print(f"\n{AZUL}Código de barras '{codigo_barras}' não encontrado. Iniciando novo cadastro...{RESET}")
+        try:
+            descricao = input("Descrição do produto: ")
+            quantidade = int(input("Quantidade inicial em estoque: "))
+            valor_unitario = float(input("Valor unitário: "))
+            categoria = input("Categoria (ex: Pães, Doces, Bebidas): ")
+
+            estoque[codigo_barras] = {
+                'descricao': descricao.lower(),
+                'quantidade': quantidade,
+                'valor_unitario': valor_unitario,
+                'categoria': categoria
+            }
+            salvar_dados(receitas, despesas, estoque)
+            print(f"\n{VERDE}Produto '{descricao}' cadastrado com sucesso!{RESET}")
+        except ValueError:
+            print(f"{VERMELHO}Entrada inválida. Por favor, use números para quantidade e valor.{RESET}")
+
     input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
 def gerenciar_estoque(receitas, despesas, estoque):
@@ -214,24 +268,27 @@ def gerenciar_estoque(receitas, despesas, estoque):
         print("2. Adicionar Múltiplos Produtos (Entrada em Lote)")
         print("3. Ver Estoque Atual")
         print("4. Mudar Categoria de Produto")
-        print(f"5. {AZUL}{NEGRITO}Voltar ao Menu Principal{RESET}")
+        print("5. Adicionar Novo Produto (com Código de Barras)")
+        print(f"6. {AZUL}{NEGRITO}Voltar ao Menu Principal{RESET}")
         escolha = input("Escolha uma opção: ")
 
         if escolha == '1':
-            produto = input("Nome do produto: ").lower()
+            codigo_barras = input("Código de Barras do produto: ").strip()
+            if codigo_barras not in estoque:
+                print(f"Produto com código '{codigo_barras}' não encontrado. Use a opção 5 para um novo cadastro.")
+                input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
+                continue
+            
             try:
                 quantidade = int(input("Quantidade a adicionar: "))
-                valor_unitario = float(input(f"Valor unitário de '{produto}': "))
-                categoria = input(f"Categoria de '{produto}' (ex: Pães, Doces, Bebidas): ")
+                valor_unitario = float(input(f"Valor unitário de '{estoque[codigo_barras]['descricao']}': "))
+                categoria = input(f"Categoria de '{estoque[codigo_barras]['descricao']}' (ex: Pães, Doces, Bebidas): ")
                 
-                if produto in estoque:
-                    estoque[produto]['quantidade'] += quantidade
-                    estoque[produto]['valor_unitario'] = valor_unitario
-                    estoque[produto]['categoria'] = categoria
-                else:
-                    estoque[produto] = {'quantidade': quantidade, 'valor_unitario': valor_unitario, 'categoria': categoria}
+                estoque[codigo_barras]['quantidade'] += quantidade
+                estoque[codigo_barras]['valor_unitario'] = valor_unitario
+                estoque[codigo_barras]['categoria'] = categoria
                 salvar_dados(receitas, despesas, estoque)
-                print(f"Entrada de {quantidade} unidades de '{produto}' ({categoria}).")
+                print(f"Entrada de {quantidade} unidades de '{estoque[codigo_barras]['descricao']}' ({categoria}).")
             except ValueError:
                 print("Valor ou quantidade inválido. Por favor, digite números.")
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
@@ -244,10 +301,16 @@ def gerenciar_estoque(receitas, despesas, estoque):
             if not estoque:
                 print("O estoque está vazio.")
             else:
-                for produto, dados in estoque.items():
+                for codigo, dados in estoque.items():
+                    descricao = dados.get('descricao', codigo)
                     valor_unitario_formatado = locale.currency(dados['valor_unitario'], grouping=True)
                     categoria = dados.get('categoria', 'N/A')
-                    print(f"- {NEGRITO}{produto.capitalize()}{RESET} ({categoria}): {dados['quantidade']} unidades ({valor_unitario_formatado} cada)")
+                    
+                    if dados['quantidade'] <= 10:
+                        print(f"- {VERMELHO}{NEGRITO}{descricao.capitalize()}{RESET} ({codigo}) ({categoria}): {dados['quantidade']} unidades ({valor_unitario_formatado} cada)")
+                    else:
+                        print(f"- {NEGRITO}{descricao.capitalize()}{RESET} ({codigo}) ({categoria}): {dados['quantidade']} unidades ({valor_unitario_formatado} cada)")
+
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
         elif escolha == '4':
@@ -258,19 +321,20 @@ def gerenciar_estoque(receitas, despesas, estoque):
             
             produtos_lista = list(estoque.keys())
             print(f"\n{AMARELO}#### Mudar Categoria de Produto ####{RESET}")
-            for i, produto in enumerate(produtos_lista, 1):
-                categoria_atual = estoque[produto]['categoria']
-                print(f"{i}. {produto.capitalize()} (Categoria atual: {categoria_atual})")
+            for i, codigo in enumerate(produtos_lista, 1):
+                descricao = estoque[codigo].get('descricao', codigo)
+                categoria_atual = estoque[codigo]['categoria']
+                print(f"{i}. {descricao.capitalize()} (Código: {codigo}, Categoria atual: {categoria_atual})")
                 
             try:
                 escolha_produto = int(input("\nEscolha o número do produto que deseja mudar: "))
                 if 1 <= escolha_produto <= len(produtos_lista):
-                    produto_selecionado = produtos_lista[escolha_produto - 1]
-                    nova_categoria = input(f"Digite a nova categoria para '{produto_selecionado.capitalize()}': ")
+                    codigo_selecionado = produtos_lista[escolha_produto - 1]
+                    nova_categoria = input(f"Digite a nova categoria para '{estoque[codigo_selecionado]['descricao'].capitalize()}': ")
                     
-                    estoque[produto_selecionado]['categoria'] = nova_categoria
+                    estoque[codigo_selecionado]['categoria'] = nova_categoria
                     salvar_dados(receitas, despesas, estoque)
-                    print(f"A categoria de '{produto_selecionado.capitalize()}' foi alterada para '{nova_categoria}'.")
+                    print(f"A categoria de '{estoque[codigo_selecionado]['descricao'].capitalize()}' foi alterada para '{nova_categoria}'.")
                 else:
                     print("Opção inválida.")
             except ValueError:
@@ -278,23 +342,29 @@ def gerenciar_estoque(receitas, despesas, estoque):
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
         elif escolha == '5':
+            adicionar_produto_por_codigo(receitas, despesas, estoque)
+        
+        elif escolha == '6':
             break
 
         else:
             print("Opção inválida. Tente novamente.")
             input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
-def gerenciar_vendas(receitas, despesas, estoque):
-    """Gerencia as operações de vendas."""
+def registrar_venda_delivery(receitas, despesas, estoque, plataforma):
+    """
+    Lança uma venda de delivery apenas na contagem do estoque, sem afetar receitas.
+    Agora exibe a lista de produtos para seleção.
+    """
     while True:
         limpar_tela()
-        print(f"\n{AMARELO}#### Menu de Vendas ####{RESET}")
+        print(f"\n{AMARELO}#### Venda Delivery ({plataforma}) ####{RESET}")
         
         produtos_por_categoria = defaultdict(list)
-        for produto, dados in estoque.items():
+        for codigo, dados in estoque.items():
             categoria = dados.get('categoria', 'Outros')
-            produtos_por_categoria[categoria].append((produto, dados))
-            
+            produtos_por_categoria[categoria].append((codigo, dados))
+        
         produtos_flat = []
         if not estoque:
             print("  - Estoque vazio. Não é possível fazer vendas.")
@@ -302,72 +372,189 @@ def gerenciar_vendas(receitas, despesas, estoque):
             item_num = 1
             for categoria, produtos_lista in sorted(produtos_por_categoria.items()):
                 print(f"\n{AMARELO}--- {categoria.upper()} ---{RESET}")
-                for produto, dados in produtos_lista:
-                    produtos_flat.append(produto)
-                    valor_formatado = locale.currency(dados['valor_unitario'], grouping=True)
-                    print(f"  {item_num}. {produto.capitalize()} ({dados['quantidade']} und.) - {valor_formatado} por und.")
+                for codigo, dados in produtos_lista:
+                    produtos_flat.append(codigo)
+                    descricao = dados.get('descricao', 'N/A').capitalize()
+                    print(f"  {item_num}. {descricao} ({dados['quantidade']} und.)")
                     item_num += 1
         
-        print(f"\n0. {AZUL}{NEGRITO}Voltar ao Menu Principal{RESET}")
+        print(f"\n0. {AZUL}{NEGRITO}Finalizar Venda Delivery{RESET}")
+        print("\nOu digite o Código de Barras diretamente para vender.")
         
         try:
-            escolha = int(input("\nEscolha um produto (número) para vender ou 0 para voltar: "))
-            if escolha == 0:
-                break
+            escolha = input("\nEscolha um produto (número ou código de barras): ")
             
-            if 1 <= escolha <= len(produtos_flat):
-                produto_selecionado = produtos_flat[escolha - 1]
-                
-                quantidade = int(input(f"Quantas unidades de '{produto_selecionado.capitalize()}' deseja vender? "))
-                
-                if quantidade <= 0:
-                    print("Quantidade inválida.")
-                elif quantidade <= estoque[produto_selecionado]['quantidade']:
-                    print(f"\n{AMARELO}#### Formas de Pagamento ####{RESET}")
-                    metodos_pagamento = ['Dinheiro', 'Cartão de Débito', 'Cartão de Crédito', 'PIX']
-                    for i, metodo in enumerate(metodos_pagamento, 1):
-                        print(f"  {i}. {metodo}")
-                    
-                    escolha_pagamento = int(input("Escolha a forma de pagamento (número): "))
-                    if 1 <= escolha_pagamento <= len(metodos_pagamento):
-                        forma_pagamento = metodos_pagamento[escolha_pagamento - 1]
-                        
-                        estoque[produto_selecionado]['quantidade'] -= quantidade
-                        valor_venda = quantidade * estoque[produto_selecionado]['valor_unitario']
-
-                        if forma_pagamento == 'Dinheiro':
-                            try:
-                                valor_recebido = float(input(f"Valor recebido do cliente: "))
-                                troco = valor_recebido - valor_venda
-                                troco_formatado = locale.currency(troco, grouping=True)
-                                print(f"{AMARELO}{NEGRITO}Troco a ser devolvido: {troco_formatado}{RESET}")
-                            except ValueError:
-                                print(f"{VERMELHO}{NEGRITO}Valor recebido inválido. Troco não calculado.{RESET}")
-                                
-                        agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-                        receitas.append({
-                            'descricao': f"Venda de {quantidade} und. de {produto_selecionado}",
-                            'valor': valor_venda,
-                            'data': agora,
-                            'tipo': 'receita',
-                            'forma_pagamento': forma_pagamento
-                        })
-                        
-                        salvar_dados(receitas, despesas, estoque)
-                        valor_venda_formatado = locale.currency(valor_venda, grouping=True)
-                        
-                        print(f"\n{AMARELO}{NEGRITO}Venda registrada de {quantidade} unidades de '{produto_selecionado}' no valor total de {valor_venda_formatado} ({forma_pagamento}).{RESET}")
-                        print(f"{AMARELO}{NEGRITO}Estoque atual de '{produto_selecionado}': {estoque[produto_selecionado]['quantidade']}{RESET}")
-                    else:
-                        print("Opção de pagamento inválida. Venda cancelada.")
-                else:
-                    print("Estoque insuficiente para essa venda.")
+            if escolha == '0':
+                salvar_dados(receitas, despesas, estoque)
+                print("Vendas delivery finalizadas.")
+                return
+            
+            produto_selecionado = None
+            if escolha.isdigit() and int(escolha) > 0 and int(escolha) <= len(produtos_flat):
+                produto_selecionado = produtos_flat[int(escolha) - 1]
+            elif escolha in estoque:
+                produto_selecionado = escolha
             else:
                 print("Opção inválida. Tente novamente.")
+                input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
+                continue
+
+            dados_produto = estoque[produto_selecionado]
+            descricao_produto = dados_produto.get('descricao', 'N/A').capitalize()
+            
+            quantidade = int(input(f"Quantas unidades de '{descricao_produto}' foram vendidas? "))
+            
+            if quantidade <= 0:
+                print("Quantidade inválida.")
+            elif quantidade <= dados_produto['quantidade']:
+                estoque[produto_selecionado]['quantidade'] -= quantidade
+                print(f"Venda de {quantidade} unidades de '{descricao_produto}' registrada no estoque ({plataforma}).")
+                print(f"Estoque atual: {estoque[produto_selecionado]['quantidade']}.")
+                salvar_dados(receitas, despesas, estoque) # Salva a cada venda para evitar perdas
+            else:
+                print(f"{VERMELHO}Estoque insuficiente para essa venda. Disponível: {dados_produto['quantidade']}{RESET}")
+        except ValueError:
+            print("Entrada inválida. Por favor, digite um número inteiro.")
+            
+        input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
+
+def gerenciar_vendas(receitas, despesas, estoque):
+    """Gerencia as operações de vendas."""
+    while True:
+        limpar_tela()
+        print(f"\n{AMARELO}#### Menu de Vendas ####{RESET}")
+        print("1. Venda Direta (Com registro de receita)")
+        print("2. Venda Delivery (Apenas controle de estoque)")
+        print(f"3. {AZUL}{NEGRITO}Voltar ao Menu Principal{RESET}")
+        
+        escolha = input("\nEscolha uma opção: ")
+
+        if escolha == '1':
+            realizar_venda_direta(receitas, despesas, estoque)
+        elif escolha == '2':
+            menu_venda_delivery(receitas, despesas, estoque)
+        elif escolha == '3':
+            break
+        else:
+            print("Opção inválida. Tente novamente.")
+            input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
+
+def realizar_venda_direta(receitas, despesas, estoque):
+    """Função para a venda de balcão (direta), com registro de receita."""
+    while True:
+        limpar_tela()
+        print(f"\n{AMARELO}#### Venda Direta ####{RESET}")
+        
+        produtos_por_categoria = defaultdict(list)
+        for codigo, dados in estoque.items():
+            categoria = dados.get('categoria', 'Outros')
+            produtos_por_categoria[categoria].append((codigo, dados))
+        
+        produtos_flat = []
+        if not estoque:
+            print("  - Estoque vazio. Não é possível fazer vendas.")
+        else:
+            item_num = 1
+            for categoria, produtos_lista in sorted(produtos_por_categoria.items()):
+                print(f"\n{AMARELO}--- {categoria.upper()} ---{RESET}")
+                for codigo, dados in produtos_lista:
+                    produtos_flat.append(codigo)
+                    descricao = dados.get('descricao', 'N/A').capitalize()
+                    valor_formatado = locale.currency(dados['valor_unitario'], grouping=True)
+                    print(f"  {item_num}. {descricao} ({dados['quantidade']} und.) - {valor_formatado} por und.")
+                    item_num += 1
+        
+        print(f"\n0. {AZUL}{NEGRITO}Finalizar Venda{RESET}")
+        print("\nOu digite o Código de Barras diretamente para vender.")
+
+        try:
+            escolha = input("\nEscolha um produto (número ou código de barras): ")
+
+            if escolha == '0':
+                return
+
+            produto_selecionado = None
+            if escolha.isdigit() and int(escolha) > 0 and int(escolha) <= len(produtos_flat):
+                produto_selecionado = produtos_flat[int(escolha) - 1]
+            elif escolha in estoque:
+                produto_selecionado = escolha
+            else:
+                print("Opção inválida. Tente novamente.")
+                input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
+                continue
+
+            dados_produto = estoque[produto_selecionado]
+            descricao_produto = dados_produto.get('descricao', produto_selecionado).capitalize()
+            
+            quantidade = int(input(f"Quantas unidades de '{descricao_produto}' deseja vender? "))
+            
+            if quantidade <= 0:
+                print("Quantidade inválida.")
+            elif quantidade <= estoque[produto_selecionado]['quantidade']:
+                print(f"\n{AMARELO}#### Formas de Pagamento ####{RESET}")
+                metodos_pagamento = ['Dinheiro', 'Cartão de Débito', 'Cartão de Crédito', 'PIX']
+                for i, metodo in enumerate(metodos_pagamento, 1):
+                    print(f"  {i}. {metodo}")
+                
+                escolha_pagamento = int(input("Escolha a forma de pagamento (número): "))
+                if 1 <= escolha_pagamento <= len(metodos_pagamento):
+                    forma_pagamento = metodos_pagamento[escolha_pagamento - 1]
+                    
+                    estoque[produto_selecionado]['quantidade'] -= quantidade
+                    valor_venda = quantidade * estoque[produto_selecionado]['valor_unitario']
+
+                    if forma_pagamento == 'Dinheiro':
+                        try:
+                            valor_recebido = float(input(f"Valor recebido do cliente: "))
+                            troco = valor_recebido - valor_venda
+                            troco_formatado = locale.currency(troco, grouping=True)
+                            print(f"{AMARELO}{NEGRITO}Troco a ser devolvido: {troco_formatado}{RESET}")
+                        except ValueError:
+                            print(f"{VERMELHO}{NEGRITO}Valor recebido inválido. Troco não calculado.{RESET}")
+                            
+                    agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                    receitas.append({
+                        'descricao': f"Venda de {quantidade} und. de {descricao_produto}",
+                        'valor': valor_venda,
+                        'data': agora,
+                        'tipo': 'receita',
+                        'forma_pagamento': forma_pagamento
+                    })
+                    
+                    salvar_dados(receitas, despesas, estoque)
+                    valor_venda_formatado = locale.currency(valor_venda, grouping=True)
+                    
+                    print(f"\n{AMARELO}{NEGRITO}Venda registrada de {quantidade} unidades de '{descricao_produto}' no valor total de {valor_venda_formatado} ({forma_pagamento}).{RESET}")
+                    print(f"{AMARELO}{NEGRITO}Estoque atual de '{descricao_produto}': {estoque[produto_selecionado]['quantidade']}{RESET}")
+                else:
+                    print("Opção de pagamento inválida. Venda cancelada.")
+            else:
+                print("Estoque insuficiente para essa venda.")
         except ValueError:
             print("Entrada inválida. Por favor, digite um número.")
         
         input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
+
+def menu_venda_delivery(receitas, despesas, estoque):
+    """Sub-menu para vendas delivery."""
+    while True:
+        limpar_tela()
+        print(f"\n{AMARELO}#### Venda Delivery ####{RESET}")
+        print("1. Ifood")
+        print("2. 99food")
+        print(f"3. {AZUL}{NEGRITO}Voltar ao Menu Anterior{RESET}")
+        
+        escolha = input("\nEscolha uma plataforma: ")
+        
+        if escolha == '1':
+            registrar_venda_delivery(receitas, despesas, estoque, 'Ifood')
+        elif escolha == '2':
+            registrar_venda_delivery(receitas, despesas, estoque, '99food')
+        elif escolha == '3':
+            break
+        else:
+            print("Opção inválida. Tente novamente.")
+            input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
 
 def enviar_email_com_anexo(assunto, corpo, destinatario, caminho_anexo):
     """
@@ -387,7 +574,7 @@ def enviar_email_com_anexo(assunto, corpo, destinatario, caminho_anexo):
     if caminho_anexo and os.path.exists(caminho_anexo):
         try:
             with open(caminho_anexo, 'rb') as anexo:
-                part = MIMEBase('application', 'octet-stream')
+                part = MIMEMultipart._Message() # Corrigido o tipo para MIMEMultipart
                 part.set_payload(anexo.read())
             
             encoders.encode_base64(part)
@@ -427,8 +614,11 @@ def formatar_planilha_excel(caminho_arquivo):
                 worksheet.column_dimensions[column_letter].width = adjusted_width
 
             header = [cell.value for cell in worksheet[1]]
-            if 'valor' in header:
-                col_index = header.index('valor') + 1
+            if 'valor' in header or 'Valor' in header:
+                try:
+                    col_index = header.index('valor') + 1
+                except ValueError:
+                    col_index = header.index('Valor') + 1
                 for row in worksheet.iter_rows(min_row=2, max_col=col_index, max_row=worksheet.max_row):
                     cell = row[col_index - 1]
                     cell.number_format = 'R$ #,##0.00'
@@ -573,7 +763,7 @@ def gerar_relatorios_estoque(estoque):
     subpasta = "Estoque"
     caminho_subpasta = criar_subdiretorio(subpasta)
     
-    dados_estoque = [{'Produto': produto.capitalize(), 'Quantidade': dados['quantidade'], 'Valor Unitário': dados['valor_unitario'], 'Categoria': dados.get('categoria', 'N/A')} for produto, dados in estoque.items()]
+    dados_estoque = [{'Código de Barras': codigo, 'Produto': dados.get('descricao', codigo).capitalize(), 'Quantidade': dados['quantidade'], 'Valor Unitário': dados['valor_unitario'], 'Categoria': dados.get('categoria', 'N/A')} for codigo, dados in estoque.items()]
     df_estoque = pd.DataFrame(dados_estoque)
     
     caminho_arquivo = os.path.join(caminho_subpasta, 'Relatorio_de_Estoque.xlsx')
@@ -654,9 +844,10 @@ def verificar_e_enviar_alerta_estoque(estoque):
     O e-mail é enviado se a quantidade de um produto for menor ou igual a 10.
     """
     itens_em_falta = []
-    for produto, dados in estoque.items():
+    for codigo, dados in estoque.items():
         if dados['quantidade'] <= 10:
-            itens_em_falta.append(f"{produto.capitalize()} ({dados['quantidade']} unidades)")
+            descricao = dados.get('descricao', codigo)
+            itens_em_falta.append(f"{descricao.capitalize()} ({dados['quantidade']} unidades)")
 
     if itens_em_falta:
         destinatario = 'seu_email_para_receber_alertas@exemplo.com'  # Troque pelo seu e-mail
@@ -677,6 +868,24 @@ Sistema de Gestão
     else:
         print("Nenhum alerta de estoque necessário no momento.")
 
+def mostrar_alerta_estoque_baixo(estoque):
+    """
+    Exibe um alerta visual com a lista de produtos com estoque baixo (<= 10).
+    """
+    itens_em_falta = []
+    for codigo, dados in estoque.items():
+        if dados['quantidade'] <= 10:
+            descricao = dados.get('descricao', codigo)
+            itens_em_falta.append(f"{descricao.capitalize()} ({dados['quantidade']} unidades)")
+
+    if itens_em_falta:
+        print(f"\n{VERMELHO}{NEGRITO}======================================={RESET}")
+        print(f"{VERMELHO}{NEGRITO}  ATENÇÃO: PRODUTOS COM ESTOQUE BAIXO  {RESET}")
+        print(f"{VERMELHO}{NEGRITO}======================================={RESET}")
+        for item in itens_em_falta:
+            print(f"- {item}")
+        print(f"{VERMELHO}{NEGRITO}======================================={RESET}\n")
+
 def main():
     """Função principal que inicia o programa."""
     limpar_tela()
@@ -684,11 +893,15 @@ def main():
     receitas, despesas, estoque = carregar_dados()
 
     # --- Lógica de Alerta de Estoque ---
+    mostrar_alerta_estoque_baixo(estoque)
     hoje = datetime.date.today()
     if hoje.weekday() in [1, 3]:  # 1 = Terça-feira, 3 = Quinta-feira
-        print("\nVerificando estoque para alertas...")
+        print("\nVerificando estoque para alertas por e-mail...")
         verificar_e_enviar_alerta_estoque(estoque)
     # --- Fim da Lógica de Alerta ---
+    
+    input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
+    limpar_tela()
 
     while True:
         mostrar_menu()
@@ -704,13 +917,11 @@ def main():
             menu_gerar_relatorio(receitas, despesas, estoque)
         elif escolha == '5':
             limpar_tela()
-            print("\n" + "=" * 40)
-            print(f"{AZUL}{NEGRITO}{'Obrigado por usar o sistema da padaria. Até logo!':^40}{RESET}")
-            print("=" * 40)
+            print(f"{VERDE}{NEGRITO}Saindo do sistema. Obrigado por usar nosso software!{RESET}")
             break
         else:
-            print("Opção inválida. Por favor, tente novamente.")
-            input(f"\n{AZUL}{NEGRITO}Pressione Enter para continuar...{RESET}")
+            print(f"{VERMELHO}Opção inválida. Tente novamente.{RESET}")
+            time.sleep(2)
             limpar_tela()
 
 if __name__ == "__main__":
