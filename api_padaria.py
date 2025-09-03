@@ -134,3 +134,6 @@ def adicionar_despesa():
     despesas.append(nova_despesa)
     _save_data()
     return jsonify({"message": "Despesa adicionada com sucesso!"})
+
+if __name__ == '__main__':
+    app.run(debug=True)
