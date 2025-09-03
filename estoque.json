@@ -4,5 +4,11 @@
         "quantidade": 0,
         "valor_unitario": 0.6,
         "categoria": "Pães"
+    },
+    "000001": {
+        "descricao": "Pão de Sal",
+        "quantidade": 100000,
+        "valor_unitario": 0.6,
+        "categoria": "Pães"
     }
 }

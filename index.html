@@ -30,7 +30,7 @@
                         <option value="Dinheiro">Dinheiro</option>
                         <option value="Pix">Pix</option>
                     </select>
-                    <button type="submit">Registrar Venda Direta</button>
+                    <button type="submit">Registrar Venda</button>
                 </form>
             </div>
 
@@ -41,12 +41,11 @@
                     <input type="number" id="venda-delivery-quantidade" placeholder="Quantidade" required min="1">
                     <select id="venda-delivery-plataforma" required>
                         <option value="">Selecione a Plataforma</option>
-                        <option value="Ifood">Ifood</option>
-                        <option value="Rappi">Rappi</option>
+                        <option value="iFood">iFood</option>
                         <option value="Uber Eats">Uber Eats</option>
-                        <option value="Outra">Outra</option>
+                        <option value="Própria">Própria</option>
                     </select>
-                    <button type="submit">Registrar Venda Delivery</button>
+                    <button type="submit">Registrar Delivery</button>
                 </form>
             </div>
         </section>
@@ -54,24 +53,24 @@
         <hr>
 
         <section id="estoque-section">
-            <h2>Controle de Estoque</h2>
-
+            <h2>Gestão de Estoque</h2>
+            
             <div class="feedback-container" id="estoque-feedback"></div>
-
+            
             <div class="form-container">
-                <h3>Adicionar/Atualizar Produto</h3>
+                <h3>Adicionar Produto</h3>
                 <form id="form-adicionar-produto">
-                    <input type="text" id="codigo" placeholder="Código de Barras ou Número do Item" required>
-                    <input type="text" id="descricao" placeholder="Descrição do Produto" required>
-                    <input type="number" id="quantidade" placeholder="Quantidade" required min="1">
-                    <input type="number" id="valor_unitario" placeholder="Valor Unitário" step="0.01" required min="0.01">
-                    <input type="text" id="categoria" placeholder="Categoria (ex: Pães)">
-                    <button type="submit">Adicionar/Atualizar</button>
+                    <input type="text" id="add-codigo" placeholder="Código de Barras ou Número do Item" required>
+                    <input type="text" id="add-descricao" placeholder="Descrição" required>
+                    <input type="number" id="add-quantidade" placeholder="Quantidade" required min="1">
+                    <input type="number" id="add-valor" placeholder="Valor Unitário" step="0.01" required min="0.01">
+                    <input type="text" id="add-categoria" placeholder="Categoria" required>
+                    <button type="submit">Adicionar/Atualizar Produto</button>
                 </form>
             </div>
 
-            <div class="estoque-tabela-container">
-                <h3>Estoque Atual</h3>
+            <h3>Estoque Atual</h3>
+            <div class="tabela-container">
                 <table id="tabela-estoque">
                     <thead>
                         <tr>
@@ -80,6 +79,27 @@
                             <th>Quantidade</th>
                             <th>Valor Unitário</th>
                             <th>Categoria</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </div>
+        </section>
+
+        <hr>
+
+        <section id="vendas-diarias-section">
+            <h2>Vendas Diárias</h2>
+            <div class="feedback-container" id="vendas-diarias-feedback"></div>
+            <div class="vendas-tabela-container">
+                <table id="tabela-vendas-diarias">
+                    <thead>
+                        <tr>
+                            <th>Descrição</th>
+                            <th>Valor</th>
+                            <th>Forma de Pagamento</th>
+                            <th>Horário</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -120,5 +140,6 @@
     </footer>
 
     <script src="script.js"></script>
+
 </body>
 </html>
