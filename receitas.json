@@ -1,0 +1,20 @@
+[
+    {
+        "descricao": "Venda delivery: Pão de Sal (Ifood)",
+        "valor": 0.6,
+        "data": "2025-09-03T11:13:02.901506",
+        "tipo": "venda_delivery",
+        "plataforma": "Ifood",
+        "item_codigo": "1",
+        "quantidade": 1
+    },
+    {
+        "descricao": "Venda direta: Pão de Sal",
+        "valor": 1.2,
+        "data": "2025-09-03T11:13:13.588047",
+        "tipo": "venda_direta",
+        "forma_pagamento": "Dinheiro",
+        "item_codigo": "1",
+        "quantidade": 2
+    }
+]

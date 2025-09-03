@@ -1,15 +1,55 @@
-# Certifique-se de que esta linha está no topo do seu arquivo para permitir a comunicação
-from flask_cors import CORS
+import os
+import json
+import datetime
 from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
 
-# ... (outras importações e código existente) ...
-
+# --- Configurações do Flask e dados ---
 app = Flask(__name__)
-# Adicione esta linha para habilitar o CORS, caso ainda não tenha feito
-CORS(app) 
-receitas, despesas, estoque = {}, {}, {}  # Variáveis globais para armazenar os dados
+CORS(app)
 
-# ... (outras funções e rotas existentes, como as de carregamento e salvamento de dados) ...
+# Variáveis globais para armazenar os dados em memória
+estoque = {}
+receitas = []
+despesas = []
+
+# --- Funções de Carregamento e Salvamento de Dados ---
+def _save_data():
+    """Salva os dados de estoque, receitas e despesas em arquivos JSON."""
+    with open('estoque.json', 'w', encoding='utf-8') as f:
+        json.dump(estoque, f, ensure_ascii=False, indent=4)
+    with open('receitas.json', 'w', encoding='utf-8') as f:
+        json.dump(receitas, f, ensure_ascii=False, indent=4)
+    with open('despesas.json', 'w', encoding='utf-8') as f:
+        json.dump(despesas, f, ensure_ascii=False, indent=4)
+
+def _load_data():
+    """Carrega os dados dos arquivos JSON, se existirem."""
+    global estoque, receitas, despesas
+    if os.path.exists('estoque.json'):
+        with open('estoque.json', 'r', encoding='utf-8') as f:
+            estoque = json.load(f)
+    if os.path.exists('receitas.json'):
+        with open('receitas.json', 'r', encoding='utf-8') as f:
+            receitas = json.load(f)
+    if os.path.exists('despesas.json'):
+        with open('despesas.json', 'r', encoding='utf-8') as f:
+            despesas = json.load(f)
+
+# Carrega os dados na inicialização
+_load_data()
+
+# --- Rotas da API ---
+
+@app.route('/')
+def home():
+    """Serve o arquivo HTML da interface do usuário."""
+    return send_file('index.html')
+
+@app.route('/estoque', methods=['GET'])
+def get_estoque():
+    """Retorna todos os itens do estoque."""
+    return jsonify(estoque)
 
 @app.route('/estoque/add', methods=['POST'])
 def add_product():
@@ -17,8 +57,8 @@ def add_product():
     data = request.json
     codigo = data.get('codigo')
     descricao = data.get('descricao')
-    quantidade = data.get('quantidade')
-    valor_unitario = data.get('valor_unitario')
+    quantidade = int(data.get('quantidade'))
+    valor_unitario = float(data.get('valor_unitario'))
     categoria = data.get('categoria')
 
     if not all([codigo, descricao, quantidade, valor_unitario]):
@@ -26,12 +66,13 @@ def add_product():
 
     estoque[codigo] = {
         'descricao': descricao,
-        'quantidade': quantidade,
+        'quantidade': estoque.get(codigo, {}).get('quantidade', 0) + quantidade,
         'valor_unitario': valor_unitario,
         'categoria': categoria
     }
     _save_data()
     return jsonify({"message": "Produto adicionado/atualizado com sucesso!"})
+
 
 @app.route('/vendas/direta', methods=['POST'])
 def registrar_venda_direta():
@@ -134,6 +175,21 @@ def adicionar_despesa():
     despesas.append(nova_despesa)
     _save_data()
     return jsonify({"message": "Despesa adicionada com sucesso!"})
+
+@app.route('/fluxo_caixa/resumo', methods=['GET'])
+def get_fluxo_caixa():
+    """Retorna um resumo do fluxo de caixa."""
+    total_receitas = sum(r['valor'] for r in receitas)
+    total_despesas = sum(d['valor'] for d in despesas)
+    saldo = total_receitas - total_despesas
+    
+    return jsonify({
+        "total_receitas": total_receitas,
+        "total_despesas": total_despesas,
+        "saldo": saldo,
+        "receitas_detalhes": receitas,
+        "despesas_detalhes": despesas
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)

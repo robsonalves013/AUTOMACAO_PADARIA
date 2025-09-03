@@ -1,6 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
     const apiURL = 'http://127.0.0.1:5000'; // Endereço da sua API
     
+    // Variável para armazenar o estoque em memória
+    let produtosEmEstoque = {};
+
     // Formulários e elementos existentes
     const formAdicionarProduto = document.getElementById('form-adicionar-produto');
     const tabelaEstoqueBody = document.querySelector('#tabela-estoque tbody');
@@ -32,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('Erro ao carregar o estoque. Status: ' + response.status);
             }
             const estoque = await response.json();
+            produtosEmEstoque = estoque; // Salva o estoque na variável global
             
             tabelaEstoqueBody.innerHTML = ''; // Limpa a tabela antes de preencher
             
@@ -109,6 +113,34 @@ document.addEventListener('DOMContentLoaded', () => {
         const codigo = document.getElementById('venda-direta-codigo').value;
         const quantidade = parseInt(document.getElementById('venda-direta-quantidade').value);
         const formaPagamento = document.getElementById('venda-direta-pagamento').value;
+
+        // Verifica se o produto existe no estoque em memória
+        const produto = produtosEmEstoque[codigo];
+        if (!produto) {
+            showFeedback(vendasFeedback, 'Erro: Produto não encontrado.', false);
+            return;
+        }
+
+        // Calcula o valor total da venda
+        const valorTotal = produto.valor_unitario * quantidade;
+
+        // Se a forma de pagamento for Dinheiro, calcula o troco
+        if (formaPagamento === 'Dinheiro') {
+            const valorRecebido = parseFloat(prompt(`Valor total da venda: R$ ${valorTotal.toFixed(2)}\n\nDigite o valor recebido:`));
+
+            if (isNaN(valorRecebido)) {
+                showFeedback(vendasFeedback, 'Erro: Valor recebido inválido.', false);
+                return;
+            }
+
+            if (valorRecebido < valorTotal) {
+                showFeedback(vendasFeedback, 'Erro: Valor recebido é menor que o valor total da venda.', false);
+                return;
+            }
+
+            const troco = valorRecebido - valorTotal;
+            alert(`Troco a ser devolvido: R$ ${troco.toFixed(2)}`);
+        }
 
         const vendaData = {
             codigo,
