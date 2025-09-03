@@ -13,13 +13,44 @@
     </header>
 
     <main>
+        <section id="vendas-section">
+            <h2>Registro de Vendas</h2>
+
+            <div class="form-container">
+                <h3>Venda Direta</h3>
+                <form id="form-venda-direta">
+                    <input type="text" id="venda-direta-codigo" placeholder="Código de Barras ou Número do Item" required>
+                    <input type="number" id="venda-direta-quantidade" placeholder="Quantidade" required min="1">
+                    <select id="venda-direta-pagamento" required>
+                        <option value="">Selecione a Forma de Pagamento</option>
+                        <option value="Cartão de Débito/Crédito">Cartão de Débito/Crédito</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                        <option value="Pix">Pix</option>
+                    </select>
+                    <button type="submit">Registrar Venda Direta</button>
+                </form>
+            </div>
+
+            <div class="form-container">
+                <h3>Venda Delivery</h3>
+                <form id="form-venda-delivery">
+                    <input type="text" id="venda-delivery-codigo" placeholder="Código de Barras ou Número do Item" required>
+                    <input type="number" id="venda-delivery-quantidade" placeholder="Quantidade" required min="1">
+                    <input type="text" id="venda-delivery-plataforma" placeholder="Plataforma (ex: Ifood, Rappi)" required>
+                    <button type="submit">Registrar Venda Delivery</button>
+                </form>
+            </div>
+        </section>
+
+        <hr>
+
         <section id="estoque-section">
-            <h2>Gerenciar Estoque</h2>
+            <h2>Controle de Estoque</h2>
 
             <div class="form-container">
                 <h3>Adicionar/Atualizar Produto</h3>
                 <form id="form-adicionar-produto">
-                    <input type="text" id="codigo" placeholder="Código de Barras" required>
+                    <input type="text" id="codigo" placeholder="Código de Barras ou Número do Item" required>
                     <input type="text" id="descricao" placeholder="Descrição do Produto" required>
                     <input type="number" id="quantidade" placeholder="Quantidade" required min="1">
                     <input type="number" id="valor_unitario" placeholder="Valor Unitário" step="0.01" required min="0.01">
@@ -43,37 +74,6 @@
                     <tbody>
                         </tbody>
                 </table>
-            </div>
-        </section>
-
-        <hr>
-
-        <section id="vendas-section">
-            <h2>Registrar Vendas</h2>
-
-            <div class="form-container">
-                <h3>Venda Direta</h3>
-                <form id="form-venda-direta">
-                    <input type="text" id="venda-direta-codigo" placeholder="Código de Barras" required>
-                    <input type="number" id="venda-direta-quantidade" placeholder="Quantidade" required min="1">
-                    <select id="venda-direta-pagamento" required>
-                        <option value="">Selecione a Forma de Pagamento</option>
-                        <option value="Cartão">Cartão</option>
-                        <option value="Dinheiro">Dinheiro</option>
-                        <option value="Pix">Pix</option>
-                    </select>
-                    <button type="submit">Registrar Venda Direta</button>
-                </form>
-            </div>
-
-            <div class="form-container">
-                <h3>Venda Delivery</h3>
-                <form id="form-venda-delivery">
-                    <input type="text" id="venda-delivery-codigo" placeholder="Código de Barras" required>
-                    <input type="number" id="venda-delivery-quantidade" placeholder="Quantidade" required min="1">
-                    <input type="text" id="venda-delivery-plataforma" placeholder="Plataforma (ex: Ifood, Rappi)" required>
-                    <button type="submit">Registrar Venda Delivery</button>
-                </form>
             </div>
         </section>
 
