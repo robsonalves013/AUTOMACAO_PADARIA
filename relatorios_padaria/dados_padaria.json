@@ -97,6 +97,13 @@
             "data": "03/09/2025 12:09:10",
             "tipo": "receita",
             "forma_pagamento": "Dinheiro"
+        },
+        {
+            "descricao": "Venda de 9900 und. de p\u00e3o de sal",
+            "valor": 5940.0,
+            "data": "03/09/2025 12:13:58",
+            "tipo": "receita",
+            "forma_pagamento": "Dinheiro"
         }
     ],
     "despesas": [
@@ -164,7 +171,7 @@
         },
         "000001": {
             "descricao": "p\u00e3o de sal",
-            "quantidade": 99900,
+            "quantidade": 90000,
             "valor_unitario": 0.6,
             "categoria": "P\u00e3es"
         }
