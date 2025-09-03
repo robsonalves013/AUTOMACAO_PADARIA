@@ -412,7 +412,13 @@ def get_relatorio_vendas_diarias():
 
     return send_file(caminho_arquivo, as_attachment=True, download_name=os.path.basename(caminho_arquivo))
 
+# ...
+# Remova o bloco acima e adicione a chamada de função abaixo
+# ...
 if __name__ == '__main__':
+    # Carrega os dados uma única vez antes de iniciar o servidor
+    receitas, despesas, estoque = carregar_dados()
+    
     # A API será executada no endereço http://127.0.0.1:5000/
     # O modo debug reinicia a API automaticamente a cada alteração no código.
     app.run(debug=True)
