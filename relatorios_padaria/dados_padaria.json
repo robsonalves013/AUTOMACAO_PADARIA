@@ -102,7 +102,7 @@
     ],
     "estoque": {
         "p\u00e3o franc\u00eas": {
-            "quantidade": 40,
+            "quantidade": 0,
             "valor_unitario": 0.5,
             "categoria": "P\u00e3es e doces",
             "descricao": "p\u00e3o franc\u00eas"
