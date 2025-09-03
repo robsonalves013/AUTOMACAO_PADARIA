@@ -834,7 +834,7 @@ Prezado(a),
 Segue em anexo o relatório de vendas diárias da padaria referente ao dia {data_relatorio}.
 
 Atenciosamente,
-Sua Equipe
+Robson Alves - Gerente
 """
             enviar_email_com_anexo(assunto, corpo, destinatario, caminho_arquivo)
 
@@ -850,7 +850,7 @@ def verificar_e_enviar_alerta_estoque(estoque):
             itens_em_falta.append(f"{descricao.capitalize()} ({dados['quantidade']} unidades)")
 
     if itens_em_falta:
-        destinatario = 'seu_email_para_receber_alertas@exemplo.com'  # Troque pelo seu e-mail
+        destinatario = 'padariamajurak@gmail.com'  # Troque pelo seu e-mail
         assunto = "ALERTA DE REPOSIÇÃO DE ESTOQUE"
         corpo = f"""
 Prezado(a),
