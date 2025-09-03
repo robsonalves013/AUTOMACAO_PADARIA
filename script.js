@@ -11,6 +11,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const formAdicionarReceita = document.getElementById('form-adicionar-receita');
     const formAdicionarDespesa = document.getElementById('form-adicionar-despesa');
 
+    // Elementos de feedback
+    const vendasFeedback = document.getElementById('vendas-feedback');
+    const estoqueFeedback = document.getElementById('estoque-feedback');
+    const fluxoCaixaFeedback = document.getElementById('fluxo-caixa-feedback');
+
+    function showFeedback(element, message, isSuccess = true) {
+        element.textContent = message;
+        element.style.color = isSuccess ? 'green' : 'red';
+        setTimeout(() => {
+            element.textContent = '';
+        }, 5000); // A mensagem desaparece após 5 segundos
+    }
+
     // Função para carregar e exibir o estoque na tabela
     async function carregarEstoque() {
         try {
@@ -42,13 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Erro ao carregar o estoque:', error);
-            alert('Erro ao conectar com a API. Verifique se o servidor está rodando.');
+            showFeedback(estoqueFeedback, 'Erro ao conectar com a API. Verifique se o servidor está rodando.', false);
         }
     }
 
     // --- Funções de Submissão de Formulário ---
 
-    // Função para lidar com o envio do formulário de adicionar/atualizar produto
+    // Adicionar/Atualizar Produto
     formAdicionarProduto.addEventListener('submit', async (event) => {
         event.preventDefault();
 
@@ -75,19 +88,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(produtoData),
             });
             const result = await response.json();
-            alert(result.message || result.error);
             
             if (response.ok) {
+                showFeedback(estoqueFeedback, result.message, true);
                 carregarEstoque();
                 formAdicionarProduto.reset();
+            } else {
+                showFeedback(estoqueFeedback, result.error, false);
             }
         } catch (error) {
             console.error('Erro ao adicionar o produto:', error);
-            alert('Erro ao conectar com a API ou dados inválidos.');
+            showFeedback(estoqueFeedback, 'Erro ao conectar com a API ou dados inválidos.', false);
         }
     });
 
-    // Função para lidar com o envio do formulário de venda direta
+    // Venda Direta
     formVendaDireta.addEventListener('submit', async (event) => {
         event.preventDefault();
 
@@ -110,19 +125,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(vendaData),
             });
             const result = await response.json();
-            alert(result.message || result.error);
-
+            
             if (response.ok) {
+                showFeedback(vendasFeedback, result.message, true);
                 carregarEstoque();
                 formVendaDireta.reset();
+            } else {
+                showFeedback(vendasFeedback, result.error, false);
             }
         } catch (error) {
             console.error('Erro ao registrar a venda direta:', error);
-            alert('Erro ao conectar com a API ou dados inválidos.');
+            showFeedback(vendasFeedback, 'Erro ao conectar com a API ou dados inválidos.', false);
         }
     });
 
-    // Função para lidar com o envio do formulário de venda delivery
+    // Venda Delivery
     formVendaDelivery.addEventListener('submit', async (event) => {
         event.preventDefault();
 
@@ -145,19 +162,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(vendaData),
             });
             const result = await response.json();
-            alert(result.message || result.error);
             
             if (response.ok) {
+                showFeedback(vendasFeedback, result.message, true);
                 carregarEstoque();
                 formVendaDelivery.reset();
+            } else {
+                showFeedback(vendasFeedback, result.error, false);
             }
         } catch (error) {
             console.error('Erro ao registrar a venda delivery:', error);
-            alert('Erro ao conectar com a API ou dados inválidos.');
+            showFeedback(vendasFeedback, 'Erro ao conectar com a API ou dados inválidos.', false);
         }
     });
 
-    // Função para lidar com o envio do formulário de adicionar receita
+    // Adicionar Receita
     formAdicionarReceita.addEventListener('submit', async (event) => {
         event.preventDefault();
 
@@ -178,18 +197,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(receitaData),
             });
             const result = await response.json();
-            alert(result.message || result.error);
-
+            
             if (response.ok) {
+                showFeedback(fluxoCaixaFeedback, result.message, true);
                 formAdicionarReceita.reset();
+            } else {
+                showFeedback(fluxoCaixaFeedback, result.error, false);
             }
         } catch (error) {
             console.error('Erro ao adicionar receita:', error);
-            alert('Erro ao conectar com a API ou dados inválidos.');
+            showFeedback(fluxoCaixaFeedback, 'Erro ao conectar com a API ou dados inválidos.', false);
         }
     });
 
-    // Função para lidar com o envio do formulário de adicionar despesa
+    // Adicionar Despesa
     formAdicionarDespesa.addEventListener('submit', async (event) => {
         event.preventDefault();
 
@@ -210,16 +231,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify(despesaData),
             });
             const result = await response.json();
-            alert(result.message || result.error);
-
+            
             if (response.ok) {
+                showFeedback(fluxoCaixaFeedback, result.message, true);
                 formAdicionarDespesa.reset();
+            } else {
+                showFeedback(fluxoCaixaFeedback, result.error, false);
             }
         } catch (error) {
             console.error('Erro ao adicionar despesa:', error);
-            alert('Erro ao conectar com a API ou dados inválidos.');
+            showFeedback(fluxoCaixaFeedback, 'Erro ao conectar com a API ou dados inválidos.', false);
         }
     });
 
     // Chama a função para carregar o estoque quando a página é carregada
     carregarEstoque();
+});
