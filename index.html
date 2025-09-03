@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão da Padaria</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <h1>Sistema de Gestão da Padaria</h1>
+    </header>
+
+    <main>
+        <section id="estoque-section">
+            <h2>Gerenciar Estoque</h2>
+
+            <div class="form-container">
+                <h3>Adicionar/Atualizar Produto</h3>
+                <form id="form-adicionar-produto">
+                    <input type="text" id="codigo" placeholder="Código de Barras" required>
+                    <input type="text" id="descricao" placeholder="Descrição do Produto" required>
+                    <input type="number" id="quantidade" placeholder="Quantidade" required min="1">
+                    <input type="number" id="valor_unitario" placeholder="Valor Unitário" step="0.01" required min="0.01">
+                    <input type="text" id="categoria" placeholder="Categoria (ex: Pães)">
+                    <button type="submit">Adicionar/Atualizar</button>
+                </form>
+            </div>
+
+            <div class="estoque-tabela-container">
+                <h3>Estoque Atual</h3>
+                <table id="tabela-estoque">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Descrição</th>
+                            <th>Quantidade</th>
+                            <th>Valor Unitário</th>
+                            <th>Categoria</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Sistema de Gestão &copy; 2024</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
