@@ -150,6 +150,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const quantidade = parseInt(document.getElementById('venda-direta-quantidade').value);
         const formaPagamento = document.getElementById('venda-direta-pagamento').value;
 
+        // **INÍCIO DA LÓGICA DO TROCO**
+        if (formaPagamento === 'Dinheiro') {
+            const produto = produtosEmEstoque[codigo];
+            if (!produto) {
+                showFeedback(vendasFeedback, 'Erro: Produto não encontrado no estoque.', false);
+                return;
+            }
+            
+            const valorTotal = produto.valor_unitario * quantidade;
+            const valorRecebidoInput = prompt(`Valor total da venda: R$ ${valorTotal.toFixed(2)}\n\nQuanto o cliente pagou?`);
+
+            const valorRecebido = parseFloat(valorRecebidoInput);
+            if (isNaN(valorRecebido) || valorRecebido < valorTotal) {
+                alert('Valor recebido inválido ou insuficiente.');
+                return;
+            }
+
+            const troco = valorRecebido - valorTotal;
+            alert(`Troco a ser devolvido: R$ ${troco.toFixed(2)}`);
+        }
+        // **FIM DA LÓGICA DO TROCO**
+
         const vendaData = {
             codigo,
             quantidade,
