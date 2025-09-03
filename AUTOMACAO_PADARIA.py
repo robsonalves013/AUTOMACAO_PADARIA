@@ -32,8 +32,8 @@ DIRETORIO_DADOS = "relatorios_padaria"
 ASSINATURA = "Sistema desenvolvido por ROBSON ALVES"
 
 # --- Configurações do e-mail (ATUALIZAR COM SUAS INFORMAÇÕES) ---
-EMAIL_REMETENTE = 'padariamajurak@gmail.com'  # Troque pelo seu e-mail
-SENHA_APP = 'sua_senha_de_app'                  # Troque pela sua senha de app
+EMAIL_REMETENTE = 'robtechservice@outlook.com'  # Troque pelo seu e-mail
+SENHA_APP = 'ioohmnnkugrsulss'                  # Troque pela sua senha de app
 
 def verificar_diretorio():
     """Cria o diretório de dados se ele não existir."""
