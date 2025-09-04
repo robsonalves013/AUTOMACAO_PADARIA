@@ -629,8 +629,8 @@ def enviar_email_com_anexo(assunto, corpo, destinatario, caminho_anexo=None):
     Envia um e-mail com anexo.
     Atenção: Requer a configuração de uma senha de app para o e-mail remetente.
     """
-    remetente_email = EMAIL_REMETENTE
-    remetente_senha = SENHA_APP
+    remetente_email = 'robtechservice@outlook.com'
+    remetente_senha = 'ioohmnnkugrsulss'
 
     msg = MIMEMultipart()
     msg['From'] = remetente_email
@@ -718,7 +718,7 @@ def menu_principal():
         print("5. Registrar Venda Direta")
         print("6. Registrar Venda Delivery")
         print("7. Verificar Estoque e Enviar Alerta")
-        print(formatar_texto("8. Sair", cor=VERMELHO, estilo=NEGRITO))
+        print(formatar_texto("8. Salvar & Sair", cor=VERMELHO, estilo=NEGRITO))
         
         escolha = input("Escolha uma opção: ")
 

@@ -732,8 +732,8 @@ def enviar_email_com_anexo(assunto, corpo, destinatario, caminho_anexo=None):
     Envia um e-mail com anexo.
     Atenção: Requer a configuração de uma senha de app para o e-mail remetente.
     """
-    remetente_email = EMAIL_REMETENTE
-    remetente_senha = SENHA_APP
+    remetente_email = 'robtechservice@outlook.com'
+    remetente_senha = 'ioohmnnkugrsulss'
 
     msg = MIMEMultipart()
     msg['From'] = remetente_email
