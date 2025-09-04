@@ -81,35 +81,29 @@ async function carregarVendasDiarias() {
     }
 }
 
-// Modal
-const modal = document.getElementById('password-modal');
-const closeBtn = document.querySelector('.close-btn');
-const confirmBtn = document.getElementById('modal-confirm-btn');
+// Modal de senha para cancelamento
+const modalSenha = document.getElementById('password-modal');
+const closeBtnSenha = document.querySelector('.close-btn');
+const confirmBtnSenha = document.getElementById('modal-confirm-btn');
 const passwordInput = document.getElementById('modal-password');
 let idTransacaoGlobal = null;
 
 function abrirModalSenha(idTransacao) {
     idTransacaoGlobal = idTransacao;
     passwordInput.value = '';
-    modal.style.display = 'flex';
+    modalSenha.style.display = 'flex';
     passwordInput.focus();
 }
 
-closeBtn.addEventListener('click', () => {
-    modal.style.display = 'none';
+closeBtnSenha.addEventListener('click', () => {
+    modalSenha.style.display = 'none';
 });
 
-window.addEventListener('click', (event) => {
-    if (event.target === modal) {
-        modal.style.display = 'none';
-    }
-});
-
-confirmBtn.addEventListener('click', () => {
+confirmBtnSenha.addEventListener('click', () => {
     const senha = passwordInput.value;
     if (senha) {
         cancelarVenda(idTransacaoGlobal, senha);
-        modal.style.display = 'none';
+        modalSenha.style.display = 'none';
     } else {
         mostrarFeedback('vendas-feedback', 'Senha não pode ser vazia.', 'erro');
     }
@@ -141,14 +135,64 @@ async function cancelarVenda(id, senha) {
     }
 }
 
+// Novo Modal para o troco
+const modalTroco = document.getElementById('troco-modal');
+const closeBtnTroco = document.querySelector('.troco-close-btn');
+const recebidoInput = document.getElementById('troco-recebido');
+const trocoValorSpan = document.getElementById('troco-valor');
+const confirmBtnTroco = document.getElementById('troco-confirm-btn');
+const totalVendaDisplay = document.getElementById('troco-total-venda');
+
+let totalVendaGlobal = 0;
+let vendaDataGlobal = null;
+
+// Função para abrir o modal do troco
+function abrirModalTroco(totalVenda, vendaData) {
+    totalVendaGlobal = totalVenda;
+    vendaDataGlobal = vendaData;
+    totalVendaDisplay.textContent = `Total da Venda: R$ ${totalVenda.toFixed(2).replace('.', ',')}`;
+    recebidoInput.value = '';
+    trocoValorSpan.textContent = 'R$ 0,00';
+    modalTroco.style.display = 'flex';
+    recebidoInput.focus();
+}
+
+// Event listener para calcular o troco em tempo real
+recebidoInput.addEventListener('input', () => {
+    const valorRecebido = parseFloat(recebidoInput.value) || 0;
+    const troco = valorRecebido - totalVendaGlobal;
+    trocoValorSpan.textContent = `R$ ${Math.max(0, troco).toFixed(2).replace('.', ',')}`;
+});
+
+// Event listener para o botão de confirmação do troco
+confirmBtnTroco.addEventListener('click', () => {
+    if (recebidoInput.value && parseFloat(recebidoInput.value) >= totalVendaGlobal) {
+        modalTroco.style.display = 'none';
+        processarVendaDiretaAPI(vendaDataGlobal.codigo, vendaDataGlobal.quantidade, vendaDataGlobal.formaPagamento);
+    } else {
+        mostrarFeedback('vendas-feedback', 'Valor recebido insuficiente ou inválido.', 'erro');
+    }
+});
+
+// Fecha o modal do troco
+closeBtnTroco.addEventListener('click', () => {
+    modalTroco.style.display = 'none';
+});
+
+// Fecha modais ao clicar fora deles
+window.addEventListener('click', (event) => {
+    if (event.target === modalSenha) {
+        modalSenha.style.display = 'none';
+    }
+    if (event.target === modalTroco) {
+        modalTroco.style.display = 'none';
+    }
+});
+
 // --- Funções para registrar formulários ---
 
-async function registrarVendaDireta(event) {
-    event.preventDefault();
-    const codigo = document.getElementById('venda-direta-codigo').value;
-    const quantidade = parseInt(document.getElementById('venda-direta-quantidade').value);
-    const formaPagamento = document.getElementById('venda-direta-pagamento').value;
-
+// Nova função para processar a venda e chamar a API
+async function processarVendaDiretaAPI(codigo, quantidade, formaPagamento) {
     try {
         const response = await fetch('http://127.0.0.1:5000/vendas/direta', {
             method: 'POST',
@@ -168,6 +212,35 @@ async function registrarVendaDireta(event) {
     } catch (error) {
         console.error('Erro:', error);
         mostrarFeedback('vendas-feedback', 'Erro ao conectar com a API.', 'erro');
+    }
+}
+
+// Função principal para o formulário de venda direta
+async function handleVendaDiretaFormSubmission(event) {
+    event.preventDefault();
+    const codigo = document.getElementById('venda-direta-codigo').value;
+    const quantidade = parseInt(document.getElementById('venda-direta-quantidade').value);
+    const formaPagamento = document.getElementById('venda-direta-pagamento').value;
+
+    if (formaPagamento === 'Dinheiro') {
+        try {
+            const response = await fetch(`http://127.0.0.1:5000/estoque`);
+            const estoque = await response.json();
+            const produto = estoque[codigo];
+
+            if (produto) {
+                const valorTotal = produto.valor_unitario * quantidade;
+                const vendaData = { codigo, quantidade, formaPagamento };
+                abrirModalTroco(valorTotal, vendaData);
+            } else {
+                mostrarFeedback('vendas-feedback', 'Produto não encontrado no estoque para calcular o valor.', 'erro');
+            }
+        } catch (error) {
+            console.error('Erro ao buscar estoque:', error);
+            mostrarFeedback('vendas-feedback', 'Erro ao buscar dados do produto.', 'erro');
+        }
+    } else {
+        processarVendaDiretaAPI(codigo, quantidade, formaPagamento);
     }
 }
 
@@ -286,7 +359,7 @@ async function adicionarDespesa(event) {
 
 // Event Listeners para os formulários
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('form-venda-direta').addEventListener('submit', registrarVendaDireta);
+    document.getElementById('form-venda-direta').addEventListener('submit', handleVendaDiretaFormSubmission);
     document.getElementById('form-venda-delivery').addEventListener('submit', registrarVendaDelivery);
     document.getElementById('form-adicionar-produto').addEventListener('submit', adicionarProduto);
     document.getElementById('form-adicionar-receita').addEventListener('submit', adicionarReceita);

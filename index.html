@@ -147,6 +147,20 @@
         </div>
     </div>
 
+    <div id="troco-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn troco-close-btn">&times;</span>
+            <h4>Calculadora de Troco</h4>
+            <div id="troco-total-venda"></div>
+            <label for="troco-recebido">Valor Recebido (R$):</label>
+            <input type="number" id="troco-recebido" placeholder="Valor recebido" step="0.01" autofocus>
+            <div class="troco-resultado">
+                <p>Troco: <span id="troco-valor">R$ 0,00</span></p>
+            </div>
+            <button id="troco-confirm-btn">Registrar Venda</button>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 
 </body>
