@@ -168,8 +168,8 @@ button.expandir-btn:hover {
 footer {
     text-align: center;
     padding: 20px 0;
-    background-color: #fff5f5;
-    color: white;
+    background-color: #333;
+    color: rgb(0, 0, 0);
     position: relative;
     bottom: 0;
     width: 100%;
