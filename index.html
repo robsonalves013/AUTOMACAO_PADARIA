@@ -36,7 +36,7 @@
             color: #333;
         }
 
-        .modal-content input, .modal-content button {
+        .modal-content input, .modal-content button, .modal-content select {
             width: 90%;
             padding: 10px;
             margin-top: 15px;
@@ -156,7 +156,14 @@
                 <form id="form-venda-delivery">
                     <input type="text" id="venda-delivery-codigo" placeholder="Código de Barras ou Número do Item" required>
                     <input type="number" id="venda-delivery-quantidade" placeholder="Quantidade" required min="1">
-                    <input type="text" id="venda-delivery-plataforma" placeholder="Plataforma (Ex: iFood, Rappi)" required>
+                    <select id="venda-delivery-plataforma" required>
+                        <option value="">Selecione a Plataforma</option>
+                        <option value="iFood">iFood</option>
+                        <option value="99Food">99Food</option>
+                        <option value="Uber Eats">Uber Eats</option>
+                        <option value="Goomer">Goomer</option>
+                        <option value="Outro">Outro</option>
+                    </select>
                     <button type="submit">Registrar Venda</button>
                 </form>
             </div>
