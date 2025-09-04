@@ -1,5 +1,6 @@
-// Variáveis globais para o carrinho de compras
+// Variáveis globais para o carrinho de compras e vendas
 let carrinho = [];
+let vendasDiariasData = []; // Armazena os dados brutos das vendas do dia
 
 // Função para exibir mensagens de feedback na interface
 function mostrarFeedback(containerId, mensagem, tipo) {
@@ -45,20 +46,20 @@ async function carregarVendasDiarias() {
 
     try {
         const response = await fetch('http://127.0.0.1:5000/vendas/diarias');
-        const vendas = await response.json();
+        vendasDiariasData = await response.json(); // Armazena os dados brutos
 
-        if (vendas.length === 0) {
-            tabelaVendas.innerHTML = '<tr><td colspan="5">Nenhuma venda registrada hoje.</td></tr>';
+        if (vendasDiariasData.length === 0) {
+            tabelaVendas.innerHTML = '<tr><td colspan="6">Nenhuma venda registrada hoje.</td></tr>';
             return;
         }
 
-        vendas.forEach(venda => {
+        vendasDiariasData.forEach(venda => {
             const linha = tabelaVendas.insertRow();
-            // Salva o ID da transação no próprio elemento da linha
             linha.dataset.id = venda.id_transacao; 
-            // Verifica se a venda foi cancelada, mesmo mantendo a descrição
+            linha.classList.add('expandable-row'); // Adiciona a classe para facilitar
             const isCancelled = venda.descricao.includes("CANCELADA");
             const isDelivery = venda.plataforma_delivery ? true : false;
+            
             linha.innerHTML = `
                 <td style="${isCancelled ? 'text-decoration: line-through; color: #aaa;' : ''}">${venda.descricao}</td>
                 <td style="${isCancelled ? 'text-decoration: line-through; color: #aaa;' : ''}">${isDelivery ? '---' : 'R$ ' + venda.valor.toFixed(2).replace('.', ',')}</td>
@@ -68,6 +69,9 @@ async function carregarVendasDiarias() {
                     <button class="cancelar-btn" data-id="${venda.id_transacao}" ${isCancelled ? 'disabled style="background-color: #ccc; cursor: not-allowed;"' : ''}>
                         ${isCancelled ? 'Cancelada' : 'Cancelar'}
                     </button>
+                </td>
+                <td>
+                    ${venda.itens && venda.itens.length > 1 ? `<button class="expandir-btn" data-id="${venda.id_transacao}">+ Detalhes</button>` : '---'}
                 </td>
             `;
         });
@@ -80,10 +84,54 @@ async function carregarVendasDiarias() {
             });
         });
 
+        // Adiciona o listener de evento para os novos botões de expandir
+        document.querySelectorAll('.expandir-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const idTransacao = button.dataset.id;
+                toggleDetalhesVenda(idTransacao);
+            });
+        });
+
     } catch (error) {
         console.error('Erro ao carregar vendas diárias:', error);
         mostrarFeedback('vendas-diarias-feedback', 'Erro ao carregar vendas diárias.', 'erro');
     }
+}
+
+// NOVO: Função para expandir/ocultar os detalhes de uma venda
+function toggleDetalhesVenda(idTransacao) {
+    const venda = vendasDiariasData.find(v => v.id_transacao === idTransacao);
+    if (!venda || !venda.itens || venda.itens.length <= 1) return;
+
+    const tabelaVendas = document.getElementById('tabela-vendas-diarias').getElementsByTagName('tbody')[0];
+    const linhaVenda = tabelaVendas.querySelector(`[data-id='${idTransacao}']`);
+
+    // Remove linhas de detalhes se já existirem
+    const linhasExistentes = tabelaVendas.querySelectorAll(`.item-detail-row[data-parent-id='${idTransacao}']`);
+    if (linhasExistentes.length > 0) {
+        linhasExistentes.forEach(linha => linha.remove());
+        // Altera o texto do botão para "Expandir"
+        const botaoExpandir = linhaVenda.querySelector('.expandir-btn');
+        if (botaoExpandir) botaoExpandir.textContent = '+ Detalhes';
+        return;
+    }
+
+    // Adiciona as novas linhas de detalhes
+    venda.itens.forEach(item => {
+        const novaLinha = tabelaVendas.insertRow(linhaVenda.rowIndex);
+        novaLinha.classList.add('item-detail-row');
+        novaLinha.dataset.parentId = idTransacao;
+        novaLinha.innerHTML = `
+            <td>- ${item.descricao.charAt(0).toUpperCase() + item.descricao.slice(1)}</td>
+            <td>${item.quantidade}</td>
+            <td>R$ ${item.valor_unitario.toFixed(2).replace('.', ',')}</td>
+            <td colspan="3"></td>
+        `;
+    });
+
+    // Altera o texto do botão para "Ocultar"
+    const botaoExpandir = linhaVenda.querySelector('.expandir-btn');
+    if (botaoExpandir) botaoExpandir.textContent = '- Ocultar';
 }
 
 // Modal de senha para cancelamento

@@ -181,6 +181,28 @@
             "data": "03/09/2025 22:52:32",
             "tipo": "receita",
             "forma_pagamento": "Dinheiro"
+        },
+        {
+            "id_transacao": "8146b389911e46bca4a547cefe124893",
+            "itens": [
+                {
+                    "codigo_produto": "000001",
+                    "quantidade": 5,
+                    "valor_unitario": 0.6,
+                    "descricao": "p\u00e3o de sal"
+                },
+                {
+                    "codigo_produto": "caf\u00e9 expresso",
+                    "quantidade": 1,
+                    "valor_unitario": 4.5,
+                    "descricao": "caf\u00e9 expresso"
+                }
+            ],
+            "descricao": "Venda de m\u00faltiplos itens - CANCELADA",
+            "valor": 0,
+            "data": "03/09/2025 23:03:58",
+            "tipo": "receita",
+            "forma_pagamento": "Cart\u00e3o de D\u00e9bito"
         }
     ],
     "despesas": [
