@@ -53,26 +53,25 @@ async function carregarVendasDiarias() {
             const linha = tabelaVendas.insertRow();
             // Salva o ID da transação no próprio elemento da linha
             linha.dataset.id = venda.id_transacao; 
+            const isCancelled = venda.descricao === "VENDA CANCELADA";
             linha.innerHTML = `
-                <td>${venda.descricao}</td>
-                <td>R$ ${venda.valor.toFixed(2).replace('.', ',')}</td>
-                <td>${venda.forma_pagamento || venda.plataforma_delivery || 'Manual'}</td>
-                <td>${venda.data.split(' ')[1]}</td>
-                <td><button class="cancelar-btn" data-id="${venda.id_transacao}">Cancelar</button></td>
+                <td style="${isCancelled ? 'text-decoration: line-through; color: #aaa;' : ''}">${venda.descricao}</td>
+                <td style="${isCancelled ? 'text-decoration: line-through; color: #aaa;' : ''}">R$ ${venda.valor.toFixed(2).replace('.', ',')}</td>
+                <td style="${isCancelled ? 'text-decoration: line-through; color: #aaa;' : ''}">${venda.forma_pagamento || venda.plataforma_delivery || 'Manual'}</td>
+                <td style="${isCancelled ? 'text-decoration: line-through; color: #aaa;' : ''}">${venda.data.split(' ')[1]}</td>
+                <td>
+                    <button class="cancelar-btn" data-id="${venda.id_transacao}" ${isCancelled ? 'disabled style="background-color: #ccc; cursor: not-allowed;"' : ''}>
+                        ${isCancelled ? 'Cancelada' : 'Cancelar'}
+                    </button>
+                </td>
             `;
         });
 
         // Adiciona o listener de evento para os botões de cancelar
         document.querySelectorAll('.cancelar-btn').forEach(button => {
-            button.addEventListener('click', async (event) => {
-                const idTransacao = event.target.dataset.id;
-                const senha = prompt("Digite a senha master para cancelar a venda:");
-                
-                if (senha) {
-                    await cancelarVenda(idTransacao, senha);
-                } else {
-                    mostrarFeedback('vendas-feedback', 'Cancelamento abortado.', 'aviso');
-                }
+            button.addEventListener('click', () => {
+                const idTransacao = button.dataset.id;
+                abrirModalSenha(idTransacao);
             });
         });
 
@@ -82,7 +81,40 @@ async function carregarVendasDiarias() {
     }
 }
 
-// Função para cancelar uma venda
+// Modal
+const modal = document.getElementById('password-modal');
+const closeBtn = document.querySelector('.close-btn');
+const confirmBtn = document.getElementById('modal-confirm-btn');
+const passwordInput = document.getElementById('modal-password');
+let idTransacaoGlobal = null;
+
+function abrirModalSenha(idTransacao) {
+    idTransacaoGlobal = idTransacao;
+    passwordInput.value = '';
+    modal.style.display = 'flex';
+    passwordInput.focus();
+}
+
+closeBtn.addEventListener('click', () => {
+    modal.style.display = 'none';
+});
+
+window.addEventListener('click', (event) => {
+    if (event.target === modal) {
+        modal.style.display = 'none';
+    }
+});
+
+confirmBtn.addEventListener('click', () => {
+    const senha = passwordInput.value;
+    if (senha) {
+        cancelarVenda(idTransacaoGlobal, senha);
+        modal.style.display = 'none';
+    } else {
+        mostrarFeedback('vendas-feedback', 'Senha não pode ser vazia.', 'erro');
+    }
+});
+
 async function cancelarVenda(id, senha) {
     try {
         const response = await fetch('http://127.0.0.1:5000/vendas/cancelar', {

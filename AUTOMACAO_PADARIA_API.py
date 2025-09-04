@@ -43,7 +43,7 @@ ASSINATURA = "Sistema desenvolvido por ROBSON ALVES"
 # --- Configurações do e-mail (ATUALIZAR COM SUAS INFORMAÇÕES) ---
 EMAIL_REMETENTE = 'robtechservice@outlook.com'
 SENHA_APP = 'ioohmnnkugrsulss'
-SENHA_MASTER = 'sua_senha_secreta_aqui'
+SENHA_MASTER = '120724'
 
 # ----------------------------------------
 # --- FUNÇÕES DE LÓGICA DO NEGÓCIO ---
@@ -339,7 +339,7 @@ def post_venda_delivery():
 @app.route('/vendas/cancelar', methods=['POST'])
 def post_venda_cancelar():
     """
-    Novo endpoint para cancelar uma venda feita pela API, usando o ID de transação e uma senha master.
+    Endpoint para cancelar uma venda feita pela API, usando o ID de transação e uma senha master.
     """
     data = request.json
     id_transacao = data.get('id_transacao')
@@ -361,6 +361,9 @@ def post_venda_cancelar():
 
     if not venda_encontrada:
         return jsonify({"error": "Venda não encontrada"}), 404
+        
+    if venda_encontrada.get('descricao') == "VENDA CANCELADA":
+        return jsonify({"error": "Esta venda já foi cancelada."}), 400
 
     try:
         codigo_produto = venda_encontrada.get('codigo_produto')
@@ -368,9 +371,10 @@ def post_venda_cancelar():
 
         if codigo_produto in estoque and quantidade is not None:
             estoque[codigo_produto]['quantidade'] += quantidade
-            receitas.remove(venda_encontrada)
+            venda_encontrada['descricao'] = 'VENDA CANCELADA'
+            venda_encontrada['valor'] = 0
             salvar_dados(receitas, despesas, estoque)
-            return jsonify({"message": f"Venda com ID {id_transacao} cancelada com sucesso. Estoque atualizado."})
+            return jsonify({"message": f"Venda com ID {id_transacao} cancelada com sucesso. Estoque e dados atualizados."})
         else:
             return jsonify({"error": "Dados da venda incompletos para cancelamento"}), 500
     except Exception as e:
@@ -795,7 +799,6 @@ def menu_principal():
         
         input(formatar_texto("\nPressione Enter para continuar...", cor=AZUL, estilo=NEGRITO))
         limpar_tela()
-
 
 if __name__ == "__main__":
     # Para rodar a versão de terminal, descomente a linha abaixo.
