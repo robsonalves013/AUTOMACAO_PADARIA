@@ -1,3 +1,4 @@
+/* style_teste.css */
 body {
     font-family: Arial, sans-serif;
     background-color: #f4f4f9;
@@ -139,39 +140,87 @@ tbody tr:hover {
 .feedback-container.sucesso {
     background-color: #d4edda;
     color: #155724;
-    border: 1px solid #c3e6cb;
 }
 
 .feedback-container.erro {
     background-color: #f8d7da;
     color: #721c24;
-    border: 1px solid #f5c6cb;
 }
 
-button.cancelar-btn {
+.feedback-container.aviso {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+/* Estilo para o carrinho */
+#carrinho-container {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+#carrinho-container h4 {
+    margin-top: 0;
+    color: #555;
+}
+
+#carrinho-container table {
+    margin-top: 10px;
+}
+
+#carrinho-container p {
+    font-size: 1.2em;
+    font-weight: bold;
+    text-align: right;
+    margin: 10px 0 0;
+}
+
+.pagamento-container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.pagamento-container button {
+    width: auto;
+}
+
+/* Estilo para as linhas de baixo estoque */
+.low-stock {
+    background-color: #ffe8e8;
+}
+
+.low-stock td {
+    font-weight: bold;
+}
+
+.cancelar-btn, .expandir-btn {
+    padding: 5px 10px;
+    font-size: 0.8em;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.cancelar-btn {
     background-color: #dc3545;
     color: white;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9em;
 }
 
-button.cancelar-btn:disabled {
-    background-color: #aaa;
+.cancelar-btn:hover {
+    background-color: #c82333;
 }
 
-button.remover-btn {
-    background-color: #f0ad4e;
+.expandir-btn {
+    background-color: #007bff;
     color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.8em;
 }
 
-.low-stock {
-    background-color: #fff3cd;
+.expandir-btn:hover {
+    background-color: #0056b3;
 }

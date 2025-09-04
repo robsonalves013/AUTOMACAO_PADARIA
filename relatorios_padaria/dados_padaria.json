@@ -1,294 +1,38 @@
 {
     "receitas": [
         {
-            "descricao": "testando1",
-            "valor": 10000000.0,
-            "data": "29/08/2025 22:03:41",
-            "tipo": "receita",
-            "forma_pagamento": "Manual"
+            "descricao": "teste",
+            "valor": 10000.0,
+            "data": "29/08/2025 11:30:46",
+            "tipo": "receita"
         },
         {
-            "descricao": "Venda de 100 und. de p\u00e3o de sal",
-            "valor": 0.0,
-            "data": "29/08/2025 22:05:12",
-            "tipo": "receita",
-            "forma_pagamento": "Ifood"
+            "descricao": "teste2",
+            "valor": 200000.0,
+            "data": "29/08/2025 11:30:51",
+            "tipo": "receita"
         },
         {
-            "descricao": "Venda de 200 und. de p\u00e3o de sal",
-            "valor": 0.0,
-            "data": "29/08/2025 22:05:31",
-            "tipo": "receita",
-            "forma_pagamento": "99food"
-        },
-        {
-            "descricao": "Venda de 1 und. de caf\u00e9 expresso",
-            "valor": 4.5,
-            "data": "29/08/2025 22:05:52",
-            "tipo": "receita",
-            "forma_pagamento": "PIX"
-        },
-        {
-            "descricao": "Venda de 3 und. de suco de laranja",
-            "valor": 18.0,
-            "data": "29/08/2025 22:06:09",
-            "tipo": "receita",
-            "forma_pagamento": "Dinheiro"
-        },
-        {
-            "descricao": "Venda de 2 und. de caf\u00e9 expresso",
-            "valor": 9.0,
-            "data": "29/08/2025 22:10:57",
-            "tipo": "receita",
-            "forma_pagamento": "Cart\u00e3o de D\u00e9bito"
-        },
-        {
-            "descricao": "Venda de 2 item(s) - Balc\u00e3o",
-            "valor": 99.0,
-            "data": "29/08/2025 22:17:30",
-            "tipo": "receita",
-            "forma_pagamento": "Cart\u00e3o de D\u00e9bito"
-        },
-        {
-            "descricao": "Venda de 2 item(s) - Delivery",
-            "valor": 0.0,
-            "data": "29/08/2025 22:18:19",
-            "tipo": "receita",
-            "forma_pagamento": "Ifood"
-        },
-        {
-            "descricao": "Venda de 1 item(s) - Balc\u00e3o",
-            "valor": 405.0,
-            "data": "29/08/2025 22:33:12",
-            "tipo": "receita",
-            "forma_pagamento": "Cart\u00e3o de Cr\u00e9dito"
-        },
-        {
-            "descricao": "Venda Balc\u00e3o",
-            "valor": 75.0,
-            "data": "29/08/2025 23:02:26",
-            "tipo": "receita",
-            "forma_pagamento": "Dinheiro"
-        },
-        {
-            "descricao": "Venda Balc\u00e3o",
-            "valor": 47.0,
-            "data": "29/08/2025 23:05:18",
-            "tipo": "receita",
-            "forma_pagamento": "Dinheiro"
-        },
-        {
-            "descricao": "Venda de 1 und. de Suflair duo nestle",
-            "valor": 10.0,
-            "data": "02/09/2025 23:12:16",
-            "tipo": "receita",
-            "forma_pagamento": "Dinheiro"
-        },
-        {
-            "descricao": "Venda de 3 und. de Caf\u00e9 expresso",
-            "valor": 13.5,
-            "data": "02/09/2025 23:17:04",
-            "tipo": "receita",
-            "forma_pagamento": "PIX"
-        },
-        {
-            "descricao": "Venda de 100 und. de p\u00e3o de sal",
-            "valor": 60.0,
-            "data": "03/09/2025 12:09:10",
-            "tipo": "receita",
-            "forma_pagamento": "Dinheiro"
-        },
-        {
-            "descricao": "Venda de 9900 und. de p\u00e3o de sal",
-            "valor": 5940.0,
-            "data": "03/09/2025 12:13:58",
-            "tipo": "receita",
-            "forma_pagamento": "Dinheiro"
-        },
-        {
-            "descricao": "Venda de 600 und. de p\u00e3o de sal",
-            "valor": 360.0,
-            "data": "03/09/2025 22:12:11",
-            "tipo": "receita",
-            "forma_pagamento": "Cart\u00e3o de Cr\u00e9dito"
-        },
-        {
-            "id_transacao": "ec68d8200e334a48adfd29325a75a310",
-            "codigo_produto": "7891000329665",
-            "quantidade": 2,
-            "descricao": "VENDA CANCELADA",
-            "valor": 0,
-            "data": "03/09/2025 22:30:52",
-            "tipo": "receita",
-            "forma_pagamento": "Dinheiro"
-        },
-        {
-            "id_transacao": "f248bd460b37434ba0a14a6f44877b9c",
-            "codigo_produto": "bolo de chocolate",
-            "quantidade": 1,
-            "descricao": "Venda de 1 und. de bolo de chocolate - CANCELADA",
-            "valor": 0,
-            "data": "03/09/2025 22:31:10",
-            "tipo": "receita",
-            "forma_pagamento": "Dinheiro"
-        },
-        {
-            "id_transacao": "aeadbf7998d846ab89e4dcc6ed2dfb87",
-            "codigo_produto": "000001",
-            "quantidade": 3,
-            "descricao": "Venda de 3 und. de p\u00e3o de sal - CANCELADA",
-            "valor": 0,
-            "data": "03/09/2025 22:43:48",
-            "tipo": "receita",
-            "forma_pagamento": "Dinheiro"
-        },
-        {
-            "id_transacao": "999f8f6bf7594880bc3aec668b40b743",
-            "codigo_produto": "000001",
-            "quantidade": 5,
-            "descricao": "Venda de 5 und. de p\u00e3o de sal (Delivery) - CANCELADA",
-            "valor": 0,
-            "data": "03/09/2025 22:44:09",
-            "tipo": "receita",
-            "plataforma_delivery": "iFood"
-        },
-        {
-            "id_transacao": "df8bd57d43364a66a7cc285f6f56b21a",
-            "codigo_produto": "000001",
-            "quantidade": 20,
-            "descricao": "Venda de 20 und. de p\u00e3o de sal",
-            "valor": 12.0,
-            "data": "03/09/2025 22:51:35",
-            "tipo": "receita",
-            "forma_pagamento": "Dinheiro"
-        },
-        {
-            "id_transacao": "dfb45ee8494d41568666ff8447237ee4",
-            "codigo_produto": "000001",
-            "quantidade": 8,
-            "descricao": "Venda de 8 und. de p\u00e3o de sal",
-            "valor": 4.8,
-            "data": "03/09/2025 22:52:10",
-            "tipo": "receita",
-            "forma_pagamento": "Cart\u00e3o de D\u00e9bito"
-        },
-        {
-            "id_transacao": "5085c5bd094b4db6a94cebc83a541faa",
-            "codigo_produto": "7891000329665",
-            "quantidade": 1,
-            "descricao": "Venda de 1 und. de suflair duo nestle",
-            "valor": 10.0,
-            "data": "03/09/2025 22:52:32",
-            "tipo": "receita",
-            "forma_pagamento": "Dinheiro"
-        },
-        {
-            "id_transacao": "8146b389911e46bca4a547cefe124893",
-            "itens": [
-                {
-                    "codigo_produto": "000001",
-                    "quantidade": 5,
-                    "valor_unitario": 0.6,
-                    "descricao": "p\u00e3o de sal"
-                },
-                {
-                    "codigo_produto": "caf\u00e9 expresso",
-                    "quantidade": 1,
-                    "valor_unitario": 4.5,
-                    "descricao": "caf\u00e9 expresso"
-                }
-            ],
-            "descricao": "Venda de m\u00faltiplos itens - CANCELADA",
-            "valor": 0,
-            "data": "03/09/2025 23:03:58",
-            "tipo": "receita",
-            "forma_pagamento": "Cart\u00e3o de D\u00e9bito"
-        },
-        {
-            "id_transacao": "d72281cd5d454a2bae15633fae6c6e15",
-            "itens": [
-                {
-                    "codigo_produto": "000001",
-                    "quantidade": 60,
-                    "valor_unitario": 0.6,
-                    "descricao": "p\u00e3o de sal"
-                }
-            ],
-            "descricao": "Venda de m\u00faltiplos itens",
-            "valor": 36.0,
-            "data": "03/09/2025 23:14:51",
-            "tipo": "receita",
-            "forma_pagamento": "Dinheiro"
+            "descricao": "teste3",
+            "valor": 300000.0,
+            "data": "29/08/2025 11:30:56",
+            "tipo": "receita"
         }
     ],
     "despesas": [
         {
-            "descricao": "despesa1",
-            "valor": 504000.0,
-            "data": "29/08/2025 22:03:51",
+            "descricao": "saida1",
+            "valor": 20000.0,
+            "data": "29/08/2025 11:31:02",
             "tipo": "despesa"
         }
     ],
     "estoque": {
-        "p\u00e3o franc\u00eas": {
-            "quantidade": 0,
-            "valor_unitario": 0.5,
-            "categoria": "P\u00e3es e doces",
-            "descricao": "p\u00e3o franc\u00eas"
-        },
-        "p\u00e3o de queijo": {
-            "quantidade": 10,
-            "valor_unitario": 3.0,
-            "categoria": "P\u00e3es",
-            "descricao": "p\u00e3o de queijo"
-        },
-        "bolo de chocolate": {
-            "quantidade": 6,
-            "valor_unitario": 25.0,
-            "categoria": "Doces",
-            "descricao": "bolo de chocolate"
-        },
-        "torta de lim\u00e3o": {
-            "quantidade": 4,
-            "valor_unitario": 30.0,
-            "categoria": "Doces",
-            "descricao": "torta de lim\u00e3o"
-        },
-        "caf\u00e9 expresso": {
-            "quantidade": 2,
-            "valor_unitario": 4.5,
-            "categoria": "Bebidas",
-            "descricao": "caf\u00e9 expresso"
-        },
-        "suco de laranja": {
-            "quantidade": 15,
-            "valor_unitario": 6.0,
-            "categoria": "Bebidas",
-            "descricao": "suco de laranja"
+        "p\u00e3o frances": {
+            "quantidade": 9900
         },
         "p\u00e3o de leite": {
-            "quantidade": 10000,
-            "valor_unitario": 0.7,
-            "categoria": "P\u00e3es",
-            "descricao": "p\u00e3o de leite"
-        },
-        "p\u00e3o de sal": {
-            "quantidade": 98700,
-            "valor_unitario": 0.6,
-            "categoria": "P\u00e3es",
-            "descricao": "p\u00e3o de sal"
-        },
-        "7891000329665": {
-            "descricao": "suflair duo nestle",
-            "quantidade": 1,
-            "valor_unitario": 10.0,
-            "categoria": "Doces"
-        },
-        "000001": {
-            "descricao": "p\u00e3o de sal",
-            "quantidade": 10089312,
-            "valor_unitario": 0.6,
-            "categoria": "P\u00e3es"
+            "quantidade": 9999980
         }
     }
 }

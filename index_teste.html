@@ -130,7 +130,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            </tbody>
+                        </tbody>
                     </table>
                     <p>Total: <span id="carrinho-total">R$ 0,00</span></p>
                     <div class="pagamento-container">
@@ -154,7 +154,7 @@
                     <button type="submit">Registrar Venda</button>
                 </form>
             </div>
-            
+
             <div class="tabela-container">
                 <h3>Vendas Diárias</h3>
                 <div class="feedback-container" id="vendas-diarias-feedback"></div>
@@ -163,42 +163,42 @@
                         <tr>
                             <th>Descrição</th>
                             <th>Valor</th>
-                            <th>Pagamento</th>
-                            <th>Horário</th>
+                            <th>Forma de Pagamento</th>
+                            <th>Hora</th>
                             <th>Ações</th>
-                            <th></th>
+                            <th>Detalhes</th>
                         </tr>
                     </thead>
                     <tbody>
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
 
         </section>
 
         <section id="estoque-section">
-            <h2>Estoque e Produtos</h2>
+            <h2>Gestão de Estoque</h2>
             <div class="feedback-container" id="estoque-feedback"></div>
-            
+
             <div class="form-container">
-                <h3>Adicionar Produto ao Estoque</h3>
+                <h3>Adicionar / Atualizar Produto</h3>
                 <form id="form-adicionar-produto">
                     <input type="text" id="produto-codigo" placeholder="Código do Produto" required>
                     <input type="text" id="produto-descricao" placeholder="Descrição" required>
                     <input type="number" id="produto-quantidade" placeholder="Quantidade" required min="1">
                     <input type="number" id="produto-valor" placeholder="Valor Unitário" step="0.01" required min="0.01">
                     <input type="text" id="produto-categoria" placeholder="Categoria" required>
-                    <button type="submit">Adicionar/Atualizar Produto</button>
+                    <button type="submit">Adicionar / Atualizar</button>
                 </form>
             </div>
-
-            <div class="form-container" id="alterar-produto-container">
-                <h3>Alterar Produto no Estoque</h3>
+            
+            <div class="form-container">
+                <h3>Alterar Quantidade/Valor</h3>
                 <form id="form-alterar-produto">
                     <input type="text" id="alterar-codigo" placeholder="Código do Produto" required>
-                    <input type="number" id="alterar-quantidade" placeholder="Nova Quantidade" required min="0">
-                    <input type="number" id="alterar-valor" placeholder="Novo Valor Unitário" step="0.01" required min="0.01">
-                    <button type="submit">Alterar Produto</button>
+                    <input type="number" id="alterar-quantidade" placeholder="Nova Quantidade" min="0">
+                    <input type="number" id="alterar-valor" placeholder="Novo Valor Unitário" step="0.01" min="0.01">
+                    <button type="submit">Alterar</button>
                 </form>
             </div>
 
@@ -215,7 +215,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </section>
@@ -223,18 +223,18 @@
         <section id="fluxo-caixa-section">
             <h2>Fluxo de Caixa</h2>
             <div class="feedback-container" id="fluxo-caixa-feedback"></div>
-            
+
             <div class="form-container">
-                <h3>Adicionar Receita</h3>
+                <h3>Adicionar Receita Manual</h3>
                 <form id="form-adicionar-receita">
                     <input type="text" id="receita-descricao" placeholder="Descrição da Receita" required>
                     <input type="number" id="receita-valor" placeholder="Valor" step="0.01" required min="0.01">
                     <button type="submit">Adicionar Receita</button>
                 </form>
             </div>
-            
+
             <div class="form-container">
-                <h3>Adicionar Despesa</h3>
+                <h3>Adicionar Despesa Manual</h3>
                 <form id="form-adicionar-despesa">
                     <input type="text" id="despesa-descricao" placeholder="Descrição da Despesa" required>
                     <input type="number" id="despesa-valor" placeholder="Valor" step="0.01" required min="0.01">
@@ -265,7 +265,7 @@
             <input type="number" id="troco-recebido" placeholder="Valor recebido do cliente" step="0.01" required>
             <p>Troco: <span id="troco-valor">R$ 0,00</span></p>
             <button id="calcular-troco-btn">Calcular Troco</button>
-            <button id="finalizar-troco-btn">Finalizar Pagamento</button>
+            <button id="finalizar-troco-btn" disabled>Finalizar Venda</button>
         </div>
     </div>
 

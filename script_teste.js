@@ -1,3 +1,4 @@
+// script_teste.js
 // Variáveis globais para o carrinho de compras e vendas
 let carrinho = [];
 let vendasDiariasData = []; // Armazena os dados brutos das vendas do dia
@@ -263,17 +264,44 @@ async function adicionarItemAoCarrinho(event) {
         } else {
             mostrarFeedback('vendas-feedback', 'Produto não encontrado no estoque.', 'erro');
         }
+        document.getElementById('form-venda-direta').reset();
     } catch (error) {
-        console.error('Erro ao adicionar produto ao carrinho:', error);
-        mostrarFeedback('vendas-feedback', 'Erro ao verificar estoque. Tente novamente.', 'erro');
+        console.error('Erro ao adicionar item ao carrinho:', error);
+        mostrarFeedback('vendas-feedback', 'Erro ao conectar com a API.', 'erro');
     }
-    
-    document.getElementById('form-venda-direta').reset();
 }
 
-function removerItemDoCarrinho(codigo) {
-    carrinho = carrinho.filter(item => item.codigo !== codigo);
-    renderizarCarrinho();
+async function handleFinalizarVenda() {
+    const formaPagamento = document.getElementById('forma-pagamento').value;
+    if (formaPagamento === 'Dinheiro') {
+        const total = carrinho.reduce((sum, item) => sum + (item.quantidade * item.valor_unitario), 0);
+        abrirModalTroco(total);
+    } else {
+        registrarVendaFinal(carrinho, formaPagamento);
+    }
+}
+
+async function registrarVendaFinal(carrinho, formaPagamento) {
+    try {
+        const response = await fetch('http://127.0.0.1:5000/multi-venda', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ carrinho: carrinho, forma_pagamento: formaPagamento })
+        });
+        const result = await response.json();
+        if (response.ok) {
+            mostrarFeedback('vendas-feedback', result.message, 'sucesso');
+            carrinho = []; // Limpa o carrinho
+            renderizarCarrinho();
+            carregarVendasDiarias(); // Recarrega a tabela de vendas
+            carregarEstoque(); // Recarrega o estoque
+        } else {
+            mostrarFeedback('vendas-feedback', `Erro: ${result.error}`, 'erro');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarFeedback('vendas-feedback', 'Erro ao conectar com a API.', 'erro');
+    }
 }
 
 function renderizarCarrinho() {
@@ -281,80 +309,39 @@ function renderizarCarrinho() {
     tabelaCarrinho.innerHTML = '';
     let total = 0;
 
-    if (carrinho.length === 0) {
-        document.getElementById('carrinho-container').style.display = 'none';
-        document.getElementById('finalizar-btn').disabled = true;
-        document.getElementById('forma-pagamento').value = '';
-        return;
-    }
-
-    carrinho.forEach(item => {
+    carrinho.forEach((item, index) => {
         const linha = tabelaCarrinho.insertRow();
         const valorTotalItem = item.quantidade * item.valor_unitario;
         total += valorTotalItem;
+
         linha.innerHTML = `
             <td>${item.descricao.charAt(0).toUpperCase() + item.descricao.slice(1)}</td>
             <td>${item.quantidade}</td>
             <td>R$ ${item.valor_unitario.toFixed(2).replace('.', ',')}</td>
             <td>R$ ${valorTotalItem.toFixed(2).replace('.', ',')}</td>
-            <td><button class="remover-btn" data-codigo="${item.codigo}">Remover</button></td>
+            <td>
+                <button onclick="removerItemCarrinho(${index})">Remover</button>
+            </td>
         `;
     });
 
     document.getElementById('carrinho-total').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
-    document.getElementById('carrinho-container').style.display = 'block';
-    
-    document.querySelectorAll('.remover-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const codigo = e.target.dataset.codigo;
-            removerItemDoCarrinho(codigo);
-        });
-    });
-    
-    // Habilita o botão de finalizar apenas se houver itens no carrinho e uma forma de pagamento selecionada
-    document.getElementById('forma-pagamento').addEventListener('change', () => {
-        const formaPagamento = document.getElementById('forma-pagamento').value;
-        document.getElementById('finalizar-btn').disabled = !(carrinho.length > 0 && formaPagamento);
-    });
-}
-
-async function handleFinalizarVenda() {
-    const formaPagamento = document.getElementById('forma-pagamento').value;
-    if (formaPagamento === 'Dinheiro') {
-        const totalVenda = carrinho.reduce((acc, item) => acc + (item.quantidade * item.valor_unitario), 0);
-        abrirModalTroco(totalVenda);
+    const finalizarBtn = document.getElementById('finalizar-btn');
+    const formaPagamentoSelect = document.getElementById('forma-pagamento');
+    if (carrinho.length > 0) {
+        finalizarBtn.disabled = false;
+        formaPagamentoSelect.disabled = false;
     } else {
-        await registrarVendaFinal(carrinho, formaPagamento);
+        finalizarBtn.disabled = true;
+        formaPagamentoSelect.disabled = true;
+        formaPagamentoSelect.value = '';
     }
 }
 
-async function registrarVendaFinal(carrinho, formaPagamento) {
-    if (carrinho.length === 0) {
-        mostrarFeedback('vendas-feedback', 'O carrinho está vazio.', 'erro');
-        return;
-    }
-
-    try {
-        const response = await fetch('http://127.0.0.1:5000/vendas/direta', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ carrinho, forma_pagamento: formaPagamento })
-        });
-
-        const result = await response.json();
-        if (response.ok) {
-            mostrarFeedback('vendas-feedback', result.message, 'sucesso');
-            carrinho = []; // Limpa o carrinho
-            renderizarCarrinho(); // Renderiza o carrinho vazio
-            carregarEstoque(); // Atualiza a tabela de estoque
-            carregarVendasDiarias(); // Atualiza a tabela de vendas
-        } else {
-            mostrarFeedback('vendas-feedback', `Erro: ${result.error}`, 'erro');
-        }
-    } catch (error) {
-        console.error('Erro:', error);
-        mostrarFeedback('vendas-feedback', 'Erro ao conectar com a API.', 'erro');
-    }
+function removerItemCarrinho(index) {
+    carrinho.splice(index, 1);
+    renderizarCarrinho();
+    mostrarFeedback('vendas-feedback', 'Produto removido do carrinho.', 'sucesso');
 }
 
 async function registrarVendaDelivery(event) {
@@ -362,50 +349,58 @@ async function registrarVendaDelivery(event) {
     const codigo = document.getElementById('venda-codigo-delivery').value;
     const quantidade = parseInt(document.getElementById('venda-quantidade-delivery').value);
     const plataforma = document.getElementById('plataforma-delivery').value;
-    
-    const carrinhoDelivery = [{ codigo, quantidade }];
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/vendas/delivery', {
+        const response = await fetch('http://127.0.0.1:5000/venda', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ carrinho: carrinhoDelivery, plataforma })
+            body: JSON.stringify({
+                codigo: codigo,
+                quantidade: quantidade,
+                plataforma_delivery: plataforma
+            })
         });
-        
+
         const result = await response.json();
         if (response.ok) {
             mostrarFeedback('vendas-feedback', result.message, 'sucesso');
-            carregarEstoque();
             carregarVendasDiarias();
+            carregarEstoque();
         } else {
             mostrarFeedback('vendas-feedback', `Erro: ${result.error}`, 'erro');
         }
+        document.getElementById('form-venda-delivery').reset();
     } catch (error) {
         console.error('Erro:', error);
         mostrarFeedback('vendas-feedback', 'Erro ao conectar com a API.', 'erro');
     }
-    
-    document.getElementById('form-venda-delivery').reset();
 }
 
 async function adicionarProduto(event) {
     event.preventDefault();
     const codigo = document.getElementById('produto-codigo').value;
     const descricao = document.getElementById('produto-descricao').value;
-    const quantidade = parseInt(document.getElementById('produto-quantidade').value);
-    const valor_unitario = parseFloat(document.getElementById('produto-valor').value);
+    const quantidade = document.getElementById('produto-quantidade').value;
+    const valor_unitario = document.getElementById('produto-valor').value;
     const categoria = document.getElementById('produto-categoria').value;
-    
+
     try {
-        const response = await fetch('http://127.0.0.1:5000/estoque/add', {
+        const response = await fetch('http://127.0.0.1:5000/produto/adicionar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ codigo, descricao, quantidade, valor_unitario, categoria })
+            body: JSON.stringify({
+                codigo: codigo,
+                descricao: descricao,
+                quantidade: quantidade,
+                valor_unitario: valor_unitario,
+                categoria: categoria
+            })
         });
-        
         const result = await response.json();
+
         if (response.ok) {
             mostrarFeedback('estoque-feedback', result.message, 'sucesso');
+            document.getElementById('form-adicionar-produto').reset();
             carregarEstoque();
         } else {
             mostrarFeedback('estoque-feedback', `Erro: ${result.error}`, 'erro');
@@ -414,51 +409,55 @@ async function adicionarProduto(event) {
         console.error('Erro:', error);
         mostrarFeedback('estoque-feedback', 'Erro ao conectar com a API.', 'erro');
     }
-    
-    document.getElementById('form-adicionar-produto').reset();
 }
 
 async function alterarProduto(event) {
     event.preventDefault();
     const codigo = document.getElementById('alterar-codigo').value;
-    const quantidade = parseInt(document.getElementById('alterar-quantidade').value);
-    const valor = parseFloat(document.getElementById('alterar-valor').value);
+    const nova_quantidade = document.getElementById('alterar-quantidade').value;
+    const novo_valor = document.getElementById('alterar-valor').value;
 
     try {
-        const response = await fetch('http://127.0.0.1:5000/estoque/alterar', {
+        const response = await fetch('http://127.0.0.1:5000/produto/alterar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ codigo, quantidade, valor })
+            body: JSON.stringify({
+                codigo: codigo,
+                nova_quantidade: nova_quantidade,
+                novo_valor: novo_valor
+            })
         });
-
         const result = await response.json();
+
         if (response.ok) {
             mostrarFeedback('estoque-feedback', result.message, 'sucesso');
+            document.getElementById('form-alterar-produto').reset();
             carregarEstoque();
         } else {
             mostrarFeedback('estoque-feedback', `Erro: ${result.error}`, 'erro');
         }
     } catch (error) {
-        console.error('Erro ao alterar produto:', error);
+        console.error('Erro:', error);
         mostrarFeedback('estoque-feedback', 'Erro ao conectar com a API.', 'erro');
     }
-
-    document.getElementById('form-alterar-produto').reset();
 }
 
 async function adicionarReceita(event) {
     event.preventDefault();
     const descricao = document.getElementById('receita-descricao').value;
-    const valor = parseFloat(document.getElementById('receita-valor').value);
-    
+    const valor = document.getElementById('receita-valor').value;
+
     try {
-        const response = await fetch('http://127.0.0.1:5000/receitas/add', {
+        const response = await fetch('http://127.0.0.1:5000/receita/adicionar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ descricao, valor })
+            body: JSON.stringify({
+                descricao: descricao,
+                valor: valor
+            })
         });
-        
         const result = await response.json();
+
         if (response.ok) {
             mostrarFeedback('fluxo-caixa-feedback', result.message, 'sucesso');
             document.getElementById('form-adicionar-receita').reset();
@@ -474,16 +473,19 @@ async function adicionarReceita(event) {
 async function adicionarDespesa(event) {
     event.preventDefault();
     const descricao = document.getElementById('despesa-descricao').value;
-    const valor = parseFloat(document.getElementById('despesa-valor').value);
-    
+    const valor = document.getElementById('despesa-valor').value;
+
     try {
-        const response = await fetch('http://127.0.0.1:5000/despesas/add', {
+        const response = await fetch('http://127.0.0.1:5000/despesa/adicionar', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ descricao, valor })
+            body: JSON.stringify({
+                descricao: descricao,
+                valor: valor
+            })
         });
-
         const result = await response.json();
+
         if (response.ok) {
             mostrarFeedback('fluxo-caixa-feedback', result.message, 'sucesso');
             document.getElementById('form-adicionar-despesa').reset();
