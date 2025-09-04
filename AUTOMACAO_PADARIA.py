@@ -753,7 +753,7 @@ if __name__ == "__main__":
     root.withdraw()
     
     # Para rodar a versão de terminal, descomente a linha abaixo.
-    #menu_principal()
+    menu_principal()
 
     # Para rodar a versão de API, descomente a linha abaixo e comente a linha acima.
-    app.run(debug=True)
+    # app.run(debug=True)
