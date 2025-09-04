@@ -1,11 +1,16 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from baker_logic import BakeryData
+import uuid
+import datetime
 
 app = Flask(__name__)
 CORS(app)
 
 db = BakeryData()
+
+# SENHA MASTER PARA DEMONSTRAÇÃO. EM PRODUÇÃO, USE UM MÉTODO MAIS SEGURO!
+MASTER_PASSWORD = "120724"
 
 @app.route('/estoque', methods=['GET'])
 def get_estoque():
@@ -42,9 +47,21 @@ def post_venda_direta():
     message = db.register_sale(codigo, quantidade, 'direta', {'forma_pagamento': forma_pagamento})
     if "Estoque" in message:
         return jsonify({"error": message}), 400
-
-    return jsonify({"message": message})
-
+    
+    # Registra a venda na lista de receitas com os detalhes do item
+    item_vendido = {
+        'id': str(uuid.uuid4()), # id único para cada venda
+        'descricao': db.estoque[codigo]['descricao'],
+        'valor': db.estoque[codigo]['valor_unitario'] * quantidade,
+        'quantidade': quantidade,
+        'codigo': codigo,
+        'forma_pagamento': forma_pagamento,
+        'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'status': 'Concluída'
+    }
+    db.receitas.append(item_vendido)
+    
+    return jsonify({"message": "Venda registrada com sucesso!"})
 
 @app.route('/vendas/delivery', methods=['POST'])
 def post_venda_delivery():
@@ -60,13 +77,64 @@ def post_venda_delivery():
     message = db.register_sale(codigo, quantidade, 'delivery', {'plataforma_delivery': plataforma})
     if "Estoque" in message:
         return jsonify({"error": message}), 400
+    
+    # Registra a venda na lista de receitas com os detalhes do item
+    item_vendido = {
+        'id': str(uuid.uuid4()), # id único para cada venda
+        'descricao': db.estoque[codigo]['descricao'],
+        'valor': db.estoque[codigo]['valor_unitario'] * quantidade,
+        'quantidade': quantidade,
+        'codigo': codigo,
+        'plataforma_delivery': plataforma,
+        'data': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'status': 'Concluída'
+    }
+    db.receitas.append(item_vendido)
 
-    return jsonify({"message": message})
+    return jsonify({"message": "Venda registrada com sucesso!"})
 
 @app.route('/vendas/diarias', methods=['GET'])
 def get_vendas_diarias():
     """Endpoint para buscar as vendas diárias."""
     return jsonify(db.receitas)
+
+@app.route('/vendas/cancelar', methods=['POST'])
+def cancelar_venda():
+    """Endpoint para cancelar uma venda com senha master."""
+    data = request.json
+    venda_id = data.get('id')
+    senha_master = data.get('senha')
+    
+    if senha_master != MASTER_PASSWORD:
+        return jsonify({"error": "Senha master incorreta"}), 403
+
+    venda_encontrada = False
+    for i, receita in enumerate(db.receitas):
+        if str(receita['id']) == str(venda_id):
+            if receita['status'] == "Cancelada":
+                return jsonify({"error": "Esta venda já foi cancelada."}), 400
+            
+            # 1. Devolver o produto para o estoque
+            codigo_produto = receita['codigo']
+            quantidade_devolvida = receita['quantidade']
+            if codigo_produto in db.estoque:
+                db.estoque[codigo_produto]['quantidade'] += quantidade_devolvida
+            else:
+                return jsonify({"error": "Produto do estoque não encontrado para devolução."}), 404
+
+            # 2. Registrar um ajuste negativo no fluxo de caixa
+            valor_venda = receita['valor']
+            db.add_expense(f"Cancelamento de venda ID: {venda_id}", valor_venda)
+
+            # 3. Alterar o status da venda para 'Cancelada'
+            db.receitas[i]['status'] = "Cancelada"
+            venda_encontrada = True
+            break
+    
+    if venda_encontrada:
+        return jsonify({"message": "Venda cancelada com sucesso!"})
+    else:
+        return jsonify({"error": "Venda não encontrada"}), 404
 
 @app.route('/fluxo_caixa/receita', methods=['POST'])
 def add_receita_api():
@@ -93,31 +161,6 @@ def add_despesa_api():
 
     message = db.add_expense(descricao, valor)
     return jsonify({"message": message})
-
-@app.route('/vendas/cancelar', methods=['POST'])
-def cancelar_venda():
-    """Endpoint para cancelar uma venda com senha master."""
-    data = request.json
-    venda_id = data.get('id')
-    senha_master = data.get('senha')
-    
-    # SENHA MASTER PARA DEMONSTRAÇÃO. EM PRODUÇÃO, USE UM MÉTODO MAIS SEGURO!
-    MASTER_PASSWORD = "120724"
-
-    if senha_master != MASTER_PASSWORD:
-        return jsonify({"error": "Senha master incorreta"}), 403 # 403 Forbidden
-
-    venda_encontrada = False
-    for i, receita in enumerate(db.receitas):
-        if str(receita['id']) == str(venda_id):
-            db.receitas[i]['status'] = "Cancelada"
-            venda_encontrada = True
-            break
-    
-    if venda_encontrada:
-        return jsonify({"message": "Venda cancelada com sucesso!"})
-    else:
-        return jsonify({"error": "Venda não encontrada"}), 404
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

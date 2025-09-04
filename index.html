@@ -96,6 +96,13 @@
         .item-detail-row td {
             padding-left: 30px;
         }
+
+        /* Novo estilo para venda cancelada */
+        .venda-cancelada {
+            background-color: #f8d7da; /* cor de fundo para indicar cancelamento */
+            text-decoration: line-through; /* risca o texto */
+            color: #6c757d; /* cor do texto mais suave */
+        }
     </style>
 </head>
 <body>
@@ -262,7 +269,7 @@
 
     <div class="modal-overlay" id="password-modal">
         <div class="modal-content">
-            <span class="close-btn">&times;</span>
+            <span class="close-btn" id="close-password-modal">&times;</span>
             <h3>Digite a Senha Master</h3>
             <input type="password" id="modal-password" placeholder="Senha Master" required>
             <button id="modal-confirm-btn">Confirmar</button>
@@ -280,6 +287,281 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        const API_URL = 'http://127.0.0.1:5000';
+        const estoqueTableBody = document.querySelector('#tabela-estoque tbody');
+        const vendasTableBody = document.querySelector('#tabela-vendas-diarias tbody');
+        const carrinhoTableBody = document.querySelector('#tabela-carrinho tbody');
+        const carrinhoTotalSpan = document.getElementById('carrinho-total');
+        const finalizarVendaContainer = document.getElementById('finalizar-venda-container');
+        const finalizarBtn = document.getElementById('finalizar-btn');
+        const formVendaDireta = document.getElementById('form-venda-direta');
+        const formVendaDelivery = document.getElementById('form-venda-delivery');
+        const formAdicionarProduto = document.getElementById('form-adicionar-produto');
+        const formAdicionarReceita = document.getElementById('form-adicionar-receita');
+        const formAdicionarDespesa = document.getElementById('form-adicionar-despesa');
+        const vendasFeedback = document.getElementById('vendas-feedback');
+        const estoqueFeedback = document.getElementById('estoque-feedback');
+        const fluxoCaixaFeedback = document.getElementById('fluxo-caixa-feedback');
+        const vendasDiariasFeedback = document.getElementById('vendas-diarias-feedback');
+        const passwordModal = document.getElementById('password-modal');
+        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+        const modalPasswordInput = document.getElementById('modal-password');
+        
+        let carrinho = [];
+        let vendaParaCancelarId = null;
+
+        async function fetchAPI(endpoint, method = 'GET', data = null) {
+            try {
+                const options = {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                };
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+                const response = await fetch(`${API_URL}${endpoint}`, options);
+                const result = await response.json();
+                return { success: response.ok, data: result, status: response.status };
+            } catch (error) {
+                console.error('Erro na requisição da API:', error);
+                return { success: false, data: { error: 'Erro de conexão com a API' } };
+            }
+        }
+
+        function showFeedback(container, message, isSuccess = true) {
+            container.textContent = message;
+            container.style.color = isSuccess ? 'green' : 'red';
+            container.style.display = 'block';
+            setTimeout(() => {
+                container.style.display = 'none';
+            }, 5000);
+        }
+
+        async function updateEstoqueTable() {
+            const { success, data } = await fetchAPI('/estoque');
+            if (success) {
+                estoqueTableBody.innerHTML = '';
+                for (const codigo in data) {
+                    const produto = data[codigo];
+                    const row = estoqueTableBody.insertRow();
+                    const valorUnitario = produto.valor_unitario !== undefined && produto.valor_unitario !== null ? `R$ ${produto.valor_unitario.toFixed(2).replace('.', ',')}` : 'N/A';
+                    row.innerHTML = `
+                        <td>${codigo}</td>
+                        <td>${produto.descricao}</td>
+                        <td>${produto.quantidade}</td>
+                        <td>${valorUnitario}</td>
+                        <td>${produto.categoria}</td>
+                    `;
+                }
+            } else {
+                showFeedback(estoqueFeedback, `Erro ao carregar o estoque: ${data.error}`, false);
+            }
+        }
+
+        async function updateVendasDiariasTable() {
+            const { success, data } = await fetchAPI('/vendas/diarias');
+            if (success) {
+                vendasTableBody.innerHTML = '';
+                data.forEach(venda => {
+                    const row = vendasTableBody.insertRow();
+                    if (venda.status === "Cancelada") {
+                        row.classList.add("venda-cancelada");
+                    }
+                    const formaOuPlataforma = venda.forma_pagamento || venda.plataforma_delivery;
+                    row.innerHTML = `
+                        <td>${venda.descricao}</td>
+                        <td>R$ ${venda.valor.toFixed(2).replace('.', ',')}</td>
+                        <td>${formaOuPlataforma}</td>
+                        <td>${venda.data.split(' ')[1]}</td>
+                        <td>
+                            ${venda.status === 'Cancelada' ? 'Venda Cancelada' : `<button class="cancelar-venda-btn" data-id="${venda.id}">Cancelar</button>`}
+                        </td>
+                        <td></td>
+                    `;
+                });
+
+                document.querySelectorAll('.cancelar-venda-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        vendaParaCancelarId = e.target.dataset.id;
+                        passwordModal.style.display = 'flex';
+                    });
+                });
+
+            } else {
+                showFeedback(vendasDiariasFeedback, `Erro ao carregar vendas diárias: ${data.error}`, false);
+            }
+        }
+
+        modalConfirmBtn.addEventListener('click', async () => {
+            const senha = modalPasswordInput.value;
+            if (!senha) {
+                showFeedback(vendasDiariasFeedback, "Por favor, digite a senha.", false);
+                return;
+            }
+
+            const { success, data, status } = await fetchAPI('/vendas/cancelar', 'POST', { id: vendaParaCancelarId, senha: senha });
+
+            if (success) {
+                showFeedback(vendasDiariasFeedback, "Venda cancelada com sucesso!", true);
+                passwordModal.style.display = 'none';
+                modalPasswordInput.value = '';
+                updateEstoqueTable();
+                updateVendasDiariasTable();
+            } else {
+                showFeedback(vendasDiariasFeedback, `Erro ao cancelar: ${data.error}`, false);
+            }
+        });
+
+        const trocoModal = document.getElementById('troco-modal');
+        const closePasswordModal = document.getElementById('close-password-modal');
+        const closeTrocoModal = document.querySelector('#troco-modal .close-btn');
+        const trocoRecebidoInput = document.getElementById('troco-recebido');
+        const trocoValorSpan = document.getElementById('troco-valor');
+        
+        closePasswordModal.addEventListener('click', () => passwordModal.style.display = 'none');
+        closeTrocoModal.addEventListener('click', () => trocoModal.style.display = 'none');
+
+        trocoRecebidoInput.addEventListener('input', () => {
+            const total = parseFloat(carrinhoTotalSpan.textContent.replace('R$', '').replace(',', '.'));
+            const recebido = parseFloat(trocoRecebidoInput.value);
+            const troco = recebido > total ? recebido - total : 0;
+            trocoValorSpan.textContent = `R$ ${troco.toFixed(2).replace('.', ',')}`;
+        });
+
+        function updateCarrinho() {
+            carrinhoTableBody.innerHTML = '';
+            let total = 0;
+            carrinho.forEach(item => {
+                const subtotal = item.quantidade * item.valor_unitario;
+                total += subtotal;
+                const row = carrinhoTableBody.insertRow();
+                row.innerHTML = `
+                    <td>${item.descricao}</td>
+                    <td>${item.quantidade}</td>
+                    <td>R$ ${subtotal.toFixed(2).replace('.', ',')}</td>
+                `;
+            });
+            carrinhoTotalSpan.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+            if (carrinho.length > 0) {
+                finalizarVendaContainer.style.display = 'block';
+            } else {
+                finalizarVendaContainer.style.display = 'none';
+            }
+        }
+
+        formAdicionarProduto.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                codigo: document.getElementById('add-codigo').value,
+                descricao: document.getElementById('add-descricao').value,
+                quantidade: parseInt(document.getElementById('add-quantidade').value),
+                valor_unitario: parseFloat(document.getElementById('add-valor').value),
+                categoria: document.getElementById('add-categoria').value,
+            };
+            const { success, data: result } = await fetchAPI('/estoque/add', 'POST', data);
+            showFeedback(estoqueFeedback, result.message, success);
+            if (success) {
+                formAdicionarProduto.reset();
+                updateEstoqueTable();
+            }
+        });
+
+        formVendaDireta.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const codigo = document.getElementById('venda-direta-codigo').value;
+            const quantidade = parseInt(document.getElementById('venda-direta-quantidade').value);
+            const { success, data: estoqueData } = await fetchAPI(`/estoque`);
+            if (success && estoqueData[codigo]) {
+                const produto = estoqueData[codigo];
+                const itemExistente = carrinho.find(item => item.codigo === codigo);
+                if (itemExistente) {
+                    itemExistente.quantidade += quantidade;
+                } else {
+                    carrinho.push({ ...produto, codigo, quantidade });
+                }
+                document.getElementById('venda-direta-codigo').value = '';
+                document.getElementById('venda-direta-quantidade').value = '';
+                updateCarrinho();
+                finalizarBtn.disabled = false;
+                showFeedback(vendasFeedback, 'Item adicionado ao carrinho!', true);
+            } else {
+                showFeedback(vendasFeedback, 'Produto não encontrado ou dados inválidos.', false);
+            }
+        });
+
+        finalizarBtn.addEventListener('click', async () => {
+            const formaPagamento = document.getElementById('venda-direta-pagamento').value;
+            if (!formaPagamento) {
+                showFeedback(vendasFeedback, 'Por favor, selecione uma forma de pagamento.', false);
+                return;
+            }
+
+            for (const item of carrinho) {
+                const data = {
+                    codigo: item.codigo,
+                    quantidade: item.quantidade,
+                    forma_pagamento: formaPagamento
+                };
+                const { success, data: result } = await fetchAPI('/vendas/direta', 'POST', data);
+                if (!success) {
+                    showFeedback(vendasFeedback, `Erro ao registrar a venda: ${result.error}`, false);
+                    return;
+                }
+            }
+            showFeedback(vendasFeedback, 'Venda registrada com sucesso!', true);
+            carrinho = [];
+            updateCarrinho();
+            updateEstoqueTable();
+            updateVendasDiariasTable();
+        });
+
+        formVendaDelivery.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                codigo: document.getElementById('venda-delivery-codigo').value,
+                quantidade: parseInt(document.getElementById('venda-delivery-quantidade').value),
+                plataforma: document.getElementById('venda-delivery-plataforma').value,
+            };
+            const { success, data: result } = await fetchAPI('/vendas/delivery', 'POST', data);
+            showFeedback(vendasFeedback, result.message, success);
+            if (success) {
+                formVendaDelivery.reset();
+                updateEstoqueTable();
+                updateVendasDiariasTable();
+            }
+        });
+
+        formAdicionarReceita.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                descricao: document.getElementById('receita-descricao').value,
+                valor: parseFloat(document.getElementById('receita-valor').value),
+            };
+            const { success, data: result } = await fetchAPI('/fluxo_caixa/receita', 'POST', data);
+            showFeedback(fluxoCaixaFeedback, result.message, success);
+            if (success) {
+                formAdicionarReceita.reset();
+            }
+        });
+
+        formAdicionarDespesa.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                descricao: document.getElementById('despesa-descricao').value,
+                valor: parseFloat(document.getElementById('despesa-valor').value),
+            };
+            const { success, data: result } = await fetchAPI('/fluxo_caixa/despesa', 'POST', data);
+            showFeedback(fluxoCaixaFeedback, result.message, success);
+            if (success) {
+                formAdicionarDespesa.reset();
+            }
+        });
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            updateEstoqueTable();
+            updateVendasDiariasTable();
+        });
+    </script>
 </body>
 </html>
