@@ -116,8 +116,8 @@
             "id_transacao": "ec68d8200e334a48adfd29325a75a310",
             "codigo_produto": "7891000329665",
             "quantidade": 2,
-            "descricao": "Venda de 2 und. de suflair duo nestle",
-            "valor": 20.0,
+            "descricao": "VENDA CANCELADA",
+            "valor": 0,
             "data": "03/09/2025 22:30:52",
             "tipo": "receita",
             "forma_pagamento": "Dinheiro"
@@ -192,7 +192,7 @@
         },
         "7891000329665": {
             "descricao": "suflair duo nestle",
-            "quantidade": 0,
+            "quantidade": 2,
             "valor_unitario": 10.0,
             "categoria": "Doces"
         },

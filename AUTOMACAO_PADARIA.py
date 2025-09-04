@@ -16,14 +16,13 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email import encoders
-import tkinter as tk
-from tkinter import messagebox
+import uuid
 
 # --- CÓDIGO DA API FLASK ---
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-# --- Códigos ANSI para cores e estilos ---
+# --- Códigos ANSI para cores ---
 AMARELO = '\033[93m'
 AZUL = '\033[94m'
 VERDE = '\033[92m'
@@ -43,9 +42,8 @@ ASSINATURA = "Sistema desenvolvido por ROBSON ALVES"
 
 # --- Configurações do e-mail (ATUALIZAR COM SUAS INFORMAÇÕES) ---
 EMAIL_REMETENTE = 'robtechservice@outlook.com'
-# **ATENÇÃO: Mude para a senha de aplicativo gerada no Outlook.**
-# Vá nas configurações de segurança da sua conta Microsoft para gerar a senha.
-SENHA_APP = 'ioohmnnkugrsulss' 
+SENHA_APP = 'ioohmnnkugrsulss'
+SENHA_MASTER = 'sua_senha_secreta_aqui'
 
 # ----------------------------------------
 # --- FUNÇÕES DE LÓGICA DO NEGÓCIO ---
@@ -144,6 +142,9 @@ def registrar_venda_direta(receitas, estoque):
     
     agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     receitas.append({
+        'id_transacao': uuid.uuid4().hex,
+        'codigo_produto': codigo,
+        'quantidade': quantidade,
         'descricao': f"Venda de {quantidade} und. de {estoque[codigo]['descricao']}",
         'valor': valor_total,
         'data': agora,
@@ -175,6 +176,9 @@ def registrar_venda_delivery(receitas, estoque):
     
     agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     receitas.append({
+        'id_transacao': uuid.uuid4().hex,
+        'codigo_produto': codigo,
+        'quantidade': quantidade,
         'descricao': f"Venda de {quantidade} und. de {estoque[codigo]['descricao']} (Delivery)",
         'valor': valor_total,
         'data': agora,
@@ -285,6 +289,9 @@ def post_venda_direta():
 
     agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     receitas.append({
+        'id_transacao': uuid.uuid4().hex,
+        'codigo_produto': codigo,
+        'quantidade': quantidade,
         'descricao': f"Venda de {quantidade} und. de {estoque[codigo]['descricao']}",
         'valor': valor_venda,
         'data': agora,
@@ -310,9 +317,69 @@ def post_venda_delivery():
     if codigo not in estoque or estoque[codigo]['quantidade'] < quantidade:
         return jsonify({"error": "Estoque insuficiente ou produto não encontrado"}), 400
 
+    valor_unitario = estoque[codigo]['valor_unitario']
+    valor_total = quantidade * valor_unitario
     estoque[codigo]['quantidade'] -= quantidade
+
+    agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    receitas.append({
+        'id_transacao': uuid.uuid4().hex,
+        'codigo_produto': codigo,
+        'quantidade': quantidade,
+        'descricao': f"Venda de {quantidade} und. de {estoque[codigo]['descricao']} (Delivery)",
+        'valor': valor_total,
+        'data': agora,
+        'tipo': 'receita',
+        'plataforma_delivery': plataforma
+    })
+
     salvar_dados(receitas, despesas, estoque)
     return jsonify({"message": "Venda delivery registrada com sucesso!"})
+
+@app.route('/vendas/cancelar', methods=['POST'])
+def post_venda_cancelar():
+    """
+    Endpoint para cancelar uma venda feita pela API, usando o ID de transação e uma senha master.
+    """
+    data = request.json
+    id_transacao = data.get('id_transacao')
+    senha = data.get('senha_master')
+
+    if not all([id_transacao, senha]):
+        return jsonify({"error": "ID de transação ou senha não fornecidos"}), 400
+
+    if senha != SENHA_MASTER:
+        return jsonify({"error": "Senha incorreta. Acesso negado."}), 401
+
+    receitas, despesas, estoque = carregar_dados()
+    
+    venda_encontrada = None
+    for venda in receitas:
+        if venda.get('id_transacao') == id_transacao:
+            venda_encontrada = venda
+            break
+
+    if not venda_encontrada:
+        return jsonify({"error": "Venda não encontrada"}), 404
+        
+    if 'CANCELADA' in venda_encontrada.get('descricao', ''):
+        return jsonify({"error": "Esta venda já foi cancelada."}), 400
+
+    try:
+        codigo_produto = venda_encontrada.get('codigo_produto')
+        quantidade = venda_encontrada.get('quantidade')
+
+        if codigo_produto in estoque and quantidade is not None:
+            estoque[codigo_produto]['quantidade'] += quantidade
+            # Altera a descrição para indicar que a venda foi cancelada, mantendo a original
+            venda_encontrada['descricao'] = f"{venda_encontrada.get('descricao')} - CANCELADA"
+            venda_encontrada['valor'] = 0
+            salvar_dados(receitas, despesas, estoque)
+            return jsonify({"message": f"Venda com ID {id_transacao} cancelada com sucesso. Estoque e dados atualizados."})
+        else:
+            return jsonify({"error": "Dados da venda incompletos para cancelamento"}), 500
+    except Exception as e:
+        return jsonify({"error": f"Erro ao cancelar a venda: {e}"}), 500
 
 @app.route('/fluxo_caixa/receita', methods=['POST'])
 def add_receita_api():
@@ -654,27 +721,18 @@ def enviar_email_com_anexo(assunto, corpo, destinatario, caminho_anexo=None):
         print(formatar_texto(f"Aviso: Arquivo de anexo não encontrado: {caminho_anexo}", cor=VERMELHO))
         
     try:
-        # Adicione 'timeout=30' para definir um tempo limite de 30 segundos
-        server = smtplib.SMTP_SSL('smtp.outlook.com', 465, timeout=30)
+        server = smtplib.SMTP_SSL('smtp.outlook.com', 465)
         server.login(remetente_email, remetente_senha)
         server.sendmail(remetente_email, destinatario, msg.as_string())
         server.quit()
         print(formatar_texto(f"E-mail com o relatório enviado para {destinatario} com sucesso.", cor=VERDE))
     except Exception as e:
         print(formatar_texto(f"Erro ao enviar o e-mail: {e}", cor=VERMELHO))
-        print("Verifique suas credenciais de e-mail, as configurações de segurança e a conexão com a internet.")
-        print(f"Detalhes do erro: {e}")
-
-def mostrar_alerta_popup(itens):
-    """Exibe um popup com a lista de itens com estoque baixo."""
-    mensagem = "Os seguintes itens precisam de reposição:\n\n"
-    mensagem += "\n".join(itens)
-    messagebox.showwarning("ALERTA DE ESTOQUE BAIXO", mensagem)
+        print("Verifique suas credenciais de e-mail e as configurações de segurança.")
 
 def verificar_e_enviar_alerta_estoque(estoque):
     """
     Verifica o estoque e envia um e-mail de alerta para itens com quantidade baixa.
-    Agora também exibe um popup de aviso.
     """
     itens_em_falta = []
     for codigo, dados in estoque.items():
@@ -683,10 +741,6 @@ def verificar_e_enviar_alerta_estoque(estoque):
             itens_em_falta.append(f"{descricao.capitalize()} ({dados['quantidade']} unidades)")
 
     if itens_em_falta:
-        # Exibir o popup de alerta
-        mostrar_alerta_popup(itens_em_falta)
-
-        # Enviar e-mail de alerta
         destinatario = 'padariamajurak@gmail.com'
         assunto = "ALERTA DE REPOSIÇÃO DE ESTOQUE"
         corpo = f"""
@@ -748,12 +802,8 @@ def menu_principal():
         limpar_tela()
 
 if __name__ == "__main__":
-    # Inicializa o tkinter em uma janela oculta para permitir o uso de popups
-    root = tk.Tk()
-    root.withdraw()
-    
     # Para rodar a versão de terminal, descomente a linha abaixo.
-    menu_principal()
+    # menu_principal()
 
     # Para rodar a versão de API, descomente a linha abaixo e comente a linha acima.
-    # app.run(debug=True)
+    app.run(debug=True)

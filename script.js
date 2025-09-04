@@ -53,7 +53,8 @@ async function carregarVendasDiarias() {
             const linha = tabelaVendas.insertRow();
             // Salva o ID da transação no próprio elemento da linha
             linha.dataset.id = venda.id_transacao; 
-            const isCancelled = venda.descricao === "VENDA CANCELADA";
+            // Verifica se a venda foi cancelada, mesmo mantendo a descrição
+            const isCancelled = venda.descricao.includes("CANCELADA");
             linha.innerHTML = `
                 <td style="${isCancelled ? 'text-decoration: line-through; color: #aaa;' : ''}">${venda.descricao}</td>
                 <td style="${isCancelled ? 'text-decoration: line-through; color: #aaa;' : ''}">R$ ${venda.valor.toFixed(2).replace('.', ',')}</td>
