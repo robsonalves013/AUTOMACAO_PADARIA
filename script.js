@@ -25,6 +25,12 @@ async function carregarEstoque() {
         for (const codigo in estoque) {
             const produto = estoque[codigo];
             const linha = tabelaEstoque.insertRow();
+            
+            // NOVO: Adiciona a classe 'low-stock' se a quantidade for menor que 10
+            if (produto.quantidade < 10) {
+                linha.classList.add('low-stock');
+            }
+            
             linha.innerHTML = `
                 <td>${codigo}</td>
                 <td>${produto.descricao.charAt(0).toUpperCase() + produto.descricao.slice(1)}</td>
@@ -98,7 +104,7 @@ async function carregarVendasDiarias() {
     }
 }
 
-// NOVO: Função para expandir/ocultar os detalhes de uma venda
+// Função para expandir/ocultar os detalhes de uma venda
 function toggleDetalhesVenda(idTransacao) {
     const venda = vendasDiariasData.find(v => v.id_transacao === idTransacao);
     if (!venda || !venda.itens || venda.itens.length <= 1) return;
