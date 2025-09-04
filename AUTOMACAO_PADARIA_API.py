@@ -4,6 +4,7 @@ import json
 import locale
 import os
 import time
+import sys
 from openpyxl import load_workbook
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
@@ -15,12 +16,15 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email import encoders
+import tkinter as tk
+from tkinter import messagebox
+import uuid
 
 # --- CÓDIGO DA API FLASK ---
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-# --- Códigos ANSI para cores ---
+# --- Códigos ANSI para cores e estilos ---
 AMARELO = '\033[93m'
 AZUL = '\033[94m'
 VERDE = '\033[92m'
@@ -40,7 +44,9 @@ ASSINATURA = "Sistema desenvolvido por ROBSON ALVES"
 
 # --- Configurações do e-mail (ATUALIZAR COM SUAS INFORMAÇÕES) ---
 EMAIL_REMETENTE = 'robtechservice@outlook.com'
-SENHA_APP = 'ioohmnnkugrsulss'
+# **ATENÇÃO: Mude para a senha de aplicativo gerada no Outlook.**
+# Vá nas configurações de segurança da sua conta Microsoft para gerar a senha.
+SENHA_APP = 'ioohmnnkugrsulss' 
 
 # ----------------------------------------
 # --- FUNÇÕES DE LÓGICA DO NEGÓCIO ---
@@ -63,6 +69,7 @@ def carregar_dados():
             dados = json.load(f)
             return dados['receitas'], dados['despesas'], dados['estoque']
     except FileNotFoundError:
+        print(formatar_texto("Arquivo de dados não encontrado. Criando um novo com dados de exemplo...", cor=AMARELO))
         receitas_exemplo = []
         despesas_exemplo = []
         estoque_exemplo = {
@@ -85,15 +92,147 @@ def salvar_dados(receitas, despesas, estoque):
         'despesas': despesas,
         'estoque': estoque
     }
-    with open(caminho_arquivo, 'w') as f:
-        json.dump(dados, f, indent=4)
+    try:
+        with open(caminho_arquivo, 'w') as f:
+            json.dump(dados, f, indent=4)
+        print(formatar_texto("Dados salvos com sucesso!", cor=VERDE))
+    except Exception as e:
+        print(formatar_texto(f"Erro ao salvar os dados: {e}", cor=VERMELHO))
+
+def adicionar_produto_estoque(estoque):
+    """Permite adicionar ou atualizar um produto no estoque via terminal."""
+    codigo = input("Digite o código do produto (código de barras): ")
+    descricao = input("Digite a descrição do produto: ")
+    try:
+        quantidade = int(input("Digite a quantidade a ser adicionada: "))
+        valor_unitario = float(input("Digite o valor unitário: "))
+    except ValueError:
+        print(formatar_texto("Entrada inválida para quantidade ou valor. Tente novamente.", cor=VERMELHO))
+        return
+    categoria = input("Digite a categoria do produto: ")
+
+    if codigo in estoque:
+        estoque[codigo]['quantidade'] += quantidade
+        print(formatar_texto("Produto atualizado com sucesso!", cor=VERDE))
+    else:
+        estoque[codigo] = {
+            'descricao': descricao.lower(),
+            'quantidade': quantidade,
+            'valor_unitario': valor_unitario,
+            'categoria': categoria
+        }
+        print(formatar_texto("Produto adicionado com sucesso!", cor=VERDE))
+
+def registrar_venda_direta(receitas, estoque):
+    """Registra uma venda direta a partir do terminal."""
+    codigo = input("Digite o código do produto vendido: ")
+    try:
+        quantidade = int(input("Digite a quantidade vendida: "))
+    except ValueError:
+        print(formatar_texto("Quantidade inválida. Tente novamente.", cor=VERMELHO))
+        return
+
+    if codigo not in estoque or estoque[codigo]['quantidade'] < quantidade:
+        print(formatar_texto("Estoque insuficiente ou produto não encontrado.", cor=VERMELHO))
+        return
+
+    forma_pagamento = input("Digite a forma de pagamento (ex: 'Cartão', 'Dinheiro', 'PIX'): ")
+    
+    valor_unitario = estoque[codigo]['valor_unitario']
+    valor_total = quantidade * valor_unitario
+    
+    estoque[codigo]['quantidade'] -= quantidade
+    
+    agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    receitas.append({
+        'id_transacao': uuid.uuid4().hex,
+        'codigo_produto': codigo,
+        'quantidade': quantidade,
+        'descricao': f"Venda de {quantidade} und. de {estoque[codigo]['descricao']}",
+        'valor': valor_total,
+        'data': agora,
+        'tipo': 'receita',
+        'forma_pagamento': forma_pagamento
+    })
+    
+    print(formatar_texto(f"Venda de {valor_total:,.2f} registrada com sucesso!", cor=VERDE))
+
+def registrar_venda_delivery(receitas, estoque):
+    """Registra uma venda por delivery a partir do terminal."""
+    codigo = input("Digite o código do produto vendido: ")
+    try:
+        quantidade = int(input("Digite a quantidade vendida: "))
+    except ValueError:
+        print(formatar_texto("Quantidade inválida. Tente novamente.", cor=VERMELHO))
+        return
+
+    if codigo not in estoque or estoque[codigo]['quantidade'] < quantidade:
+        print(formatar_texto("Estoque insuficiente ou produto não encontrado.", cor=VERMELHO))
+        return
+        
+    plataforma = input("Digite a plataforma de delivery (ex: 'iFood', 'Rappi'): ")
+    
+    valor_unitario = estoque[codigo]['valor_unitario']
+    valor_total = quantidade * valor_unitario
+    
+    estoque[codigo]['quantidade'] -= quantidade
+    
+    agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    receitas.append({
+        'id_transacao': uuid.uuid4().hex,
+        'codigo_produto': codigo,
+        'quantidade': quantidade,
+        'descricao': f"Venda de {quantidade} und. de {estoque[codigo]['descricao']} (Delivery)",
+        'valor': valor_total,
+        'data': agora,
+        'tipo': 'receita',
+        'plataforma_delivery': plataforma
+    })
+    
+    print(formatar_texto(f"Venda por delivery de {valor_total:,.2f} registrada com sucesso!", cor=VERDE))
+
+def adicionar_receita(receitas):
+    """Adiciona uma receita manual ao fluxo de caixa."""
+    descricao = input("Descrição da receita: ")
+    try:
+        valor = float(input("Valor da receita: "))
+    except ValueError:
+        print(formatar_texto("Valor inválido. Tente novamente.", cor=VERMELHO))
+        return
+
+    agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    receitas.append({
+        'descricao': descricao,
+        'valor': valor,
+        'data': agora,
+        'tipo': 'receita',
+        'forma_pagamento': 'Manual'
+    })
+    print(formatar_texto("Receita adicionada com sucesso!", cor=VERDE))
+
+def adicionar_despesa(despesas):
+    """Adiciona uma despesa manual ao fluxo de caixa."""
+    descricao = input("Descrição da despesa: ")
+    try:
+        valor = float(input("Valor da despesa: "))
+    except ValueError:
+        print(formatar_texto("Valor inválido. Tente novamente.", cor=VERMELHO))
+        return
+
+    agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    despesas.append({
+        'descricao': descricao,
+        'valor': valor,
+        'data': agora,
+        'tipo': 'despesa'
+    })
+    print(formatar_texto("Despesa adicionada com sucesso!", cor=VERDE))
 
 # ----------------------------------------
 # --- FUNÇÕES DE API (FLASK) ---
 # ----------------------------------------
-
 app = Flask(__name__)
-CORS(app) # Habilita o CORS para todas as rotas
+CORS(app)
 
 @app.route('/estoque', methods=['GET'])
 def get_estoque():
@@ -153,6 +292,9 @@ def post_venda_direta():
 
     agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     receitas.append({
+        'id_transacao': uuid.uuid4().hex, # ID Único
+        'codigo_produto': codigo,
+        'quantidade': quantidade,
         'descricao': f"Venda de {quantidade} und. de {estoque[codigo]['descricao']}",
         'valor': valor_venda,
         'data': agora,
@@ -178,12 +320,64 @@ def post_venda_delivery():
     if codigo not in estoque or estoque[codigo]['quantidade'] < quantidade:
         return jsonify({"error": "Estoque insuficiente ou produto não encontrado"}), 400
 
+    valor_unitario = estoque[codigo]['valor_unitario']
+    valor_total = quantidade * valor_unitario
     estoque[codigo]['quantidade'] -= quantidade
+    salvar_dados(receitas, despesas, estoque)
+
+    agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    receitas.append({
+        'id_transacao': uuid.uuid4().hex, # ID Único
+        'codigo_produto': codigo,
+        'quantidade': quantidade,
+        'descricao': f"Venda de {quantidade} und. de {estoque[codigo]['descricao']} (Delivery)",
+        'valor': valor_total,
+        'data': agora,
+        'tipo': 'receita',
+        'plataforma_delivery': plataforma
+    })
+
     salvar_dados(receitas, despesas, estoque)
     return jsonify({"message": "Venda delivery registrada com sucesso!"})
 
+@app.route('/vendas/cancelar', methods=['POST'])
+def post_venda_cancelar():
+    """
+    Novo endpoint para cancelar uma venda feita pela API, usando o ID de transação.
+    """
+    data = request.json
+    id_transacao = data.get('id_transacao')
+
+    if not id_transacao:
+        return jsonify({"error": "ID de transação não fornecido"}), 400
+
+    receitas, despesas, estoque = carregar_dados()
+    
+    venda_encontrada = None
+    for venda in receitas:
+        if venda.get('id_transacao') == id_transacao:
+            venda_encontrada = venda
+            break
+
+    if not venda_encontrada:
+        return jsonify({"error": "Venda não encontrada"}), 404
+
+    try:
+        codigo_produto = venda_encontrada.get('codigo_produto')
+        quantidade = venda_encontrada.get('quantidade')
+
+        if codigo_produto in estoque and quantidade is not None:
+            estoque[codigo_produto]['quantidade'] += quantidade
+            receitas.remove(venda_encontrada)
+            salvar_dados(receitas, despesas, estoque)
+            return jsonify({"message": f"Venda com ID {id_transacao} cancelada com sucesso. Estoque atualizado."})
+        else:
+            return jsonify({"error": "Dados da venda incompletos para cancelamento"}), 500
+    except Exception as e:
+        return jsonify({"error": f"Erro ao cancelar a venda: {e}"}), 500
+
 @app.route('/fluxo_caixa/receita', methods=['POST'])
-def add_receita():
+def add_receita_api():
     """Endpoint para adicionar uma receita manual via API."""
     data = request.json
     descricao = data.get('descricao')
@@ -205,7 +399,7 @@ def add_receita():
     return jsonify({"message": "Receita adicionada com sucesso!"})
 
 @app.route('/fluxo_caixa/despesa', methods=['POST'])
-def add_despesa():
+def add_despesa_api():
     """Endpoint para adicionar uma despesa via API."""
     data = request.json
     descricao = data.get('descricao')
@@ -238,11 +432,14 @@ def get_vendas_diarias():
     return jsonify(vendas_hoje)
 
 # ----------------------------------------
-# --- FUNÇÕES DE RELATÓRIOS E OUTRAS FUNÇÕES DO TERMINAL (mantidas) ---
+# --- FUNÇÕES DE RELATÓRIOS E TERMINAL ---
 # ----------------------------------------
 def limpar_tela():
-    """Limpa o console, compatível com diferentes sistemas operacionais."""
-    os.system('cls' if os.name == 'nt' else 'clear')
+    """
+    Limpa o console de uma forma mais segura usando códigos ANSI.
+    Substitui a versão anterior baseada em os.system() para evitar travamentos.
+    """
+    sys.stdout.write('\033[H\033[J')
 
 def mostrar_logo_inicial():
     """Exibe a mensagem de abertura do script."""
@@ -494,8 +691,8 @@ def enviar_email_com_anexo(assunto, corpo, destinatario, caminho_anexo=None):
     Envia um e-mail com anexo.
     Atenção: Requer a configuração de uma senha de app para o e-mail remetente.
     """
-    remetente_email = 'robtechservice@outlook.com'
-    remetente_senha = 'izdqctugtdqdewiw'
+    remetente_email = EMAIL_REMETENTE
+    remetente_senha = SENHA_APP
 
     msg = MIMEMultipart()
     msg['From'] = remetente_email
@@ -519,18 +716,27 @@ def enviar_email_com_anexo(assunto, corpo, destinatario, caminho_anexo=None):
         print(formatar_texto(f"Aviso: Arquivo de anexo não encontrado: {caminho_anexo}", cor=VERMELHO))
         
     try:
-        server = smtplib.SMTP_SSL('smtp.outlook.com', 465)
+        # Adicione 'timeout=30' para definir um tempo limite de 30 segundos
+        server = smtplib.SMTP_SSL('smtp.outlook.com', 465, timeout=30)
         server.login(remetente_email, remetente_senha)
         server.sendmail(remetente_email, destinatario, msg.as_string())
         server.quit()
         print(formatar_texto(f"E-mail com o relatório enviado para {destinatario} com sucesso.", cor=VERDE))
     except Exception as e:
         print(formatar_texto(f"Erro ao enviar o e-mail: {e}", cor=VERMELHO))
-        print("Verifique suas credenciais de e-mail e as configurações de segurança.")
+        print("Verifique suas credenciais de e-mail, as configurações de segurança e a conexão com a internet.")
+        print(f"Detalhes do erro: {e}")
+
+def mostrar_alerta_popup(itens):
+    """Exibe um popup com a lista de itens com estoque baixo."""
+    mensagem = "Os seguintes itens precisam de reposição:\n\n"
+    mensagem += "\n".join(itens)
+    messagebox.showwarning("ALERTA DE ESTOQUE BAIXO", mensagem)
 
 def verificar_e_enviar_alerta_estoque(estoque):
     """
     Verifica o estoque e envia um e-mail de alerta para itens com quantidade baixa.
+    Agora também exibe um popup de aviso.
     """
     itens_em_falta = []
     for codigo, dados in estoque.items():
@@ -539,6 +745,10 @@ def verificar_e_enviar_alerta_estoque(estoque):
             itens_em_falta.append(f"{descricao.capitalize()} ({dados['quantidade']} unidades)")
 
     if itens_em_falta:
+        # Exibir o popup de alerta
+        mostrar_alerta_popup(itens_em_falta)
+
+        # Enviar e-mail de alerta
         destinatario = 'padariamajurak@gmail.com'
         assunto = "ALERTA DE REPOSIÇÃO DE ESTOQUE"
         corpo = f"""
@@ -554,7 +764,58 @@ Sistema de Gestão
         print("Nenhum alerta de estoque necessário no momento.")
 
 # ----------------------------------------
-# --- FUNÇÃO PRINCIPAL ---
+# --- FUNÇÃO PRINCIPAL (CONSOLE) ---
 # ----------------------------------------
+def menu_principal():
+    """Função principal para o menu do terminal."""
+    receitas, despesas, estoque = carregar_dados()
+    mostrar_logo_inicial()
+    
+    while True:
+        print(formatar_texto("\n#### MENU PRINCIPAL ####", cor=VERDE))
+        print("1. Gerar Relatórios")
+        print("2. Registrar Receita")
+        print("3. Registrar Despesa")
+        print("4. Adicionar/Atualizar Produto no Estoque")
+        print("5. Registrar Venda Direta")
+        print("6. Registrar Venda Delivery")
+        print("7. Verificar Estoque e Enviar Alerta")
+        print(formatar_texto("8. Sair", cor=VERMELHO, estilo=NEGRITO))
+        
+        escolha = input("Escolha uma opção: ")
+
+        if escolha == '1':
+            menu_gerar_relatorio(receitas, despesas, estoque)
+        elif escolha == '2':
+            adicionar_receita(receitas)
+        elif escolha == '3':
+            adicionar_despesa(despesas)
+        elif escolha == '4':
+            adicionar_produto_estoque(estoque)
+        elif escolha == '5':
+            registrar_venda_direta(receitas, estoque)
+        elif escolha == '6':
+            registrar_venda_delivery(receitas, estoque)
+        elif escolha == '7':
+            verificar_e_enviar_alerta_estoque(estoque)
+        elif escolha == '8':
+            print("Salvando dados...")
+            salvar_dados(receitas, despesas, estoque)
+            print("Encerrando o programa.")
+            break
+        else:
+            print(formatar_texto("Opção inválida. Tente novamente.", cor=VERMELHO))
+        
+        input(formatar_texto("\nPressione Enter para continuar...", cor=AZUL, estilo=NEGRITO))
+        limpar_tela()
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Inicializa o tkinter em uma janela oculta para permitir o uso de popups
+    root = tk.Tk()
+    root.withdraw()
+    
+    # Para rodar a versão de terminal, descomente a linha abaixo.
+    menu_principal()
+
+    # Para rodar a versão de API, descomente a linha abaixo e comente a linha acima.
+    # app.run(debug=True)

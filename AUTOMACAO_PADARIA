@@ -16,6 +16,8 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email import encoders
+import tkinter as tk
+from tkinter import messagebox
 
 # --- CÓDIGO DA API FLASK ---
 from flask import Flask, jsonify, request
@@ -652,18 +654,27 @@ def enviar_email_com_anexo(assunto, corpo, destinatario, caminho_anexo=None):
         print(formatar_texto(f"Aviso: Arquivo de anexo não encontrado: {caminho_anexo}", cor=VERMELHO))
         
     try:
-        server = smtplib.SMTP_SSL('smtp.outlook.com', 465)
+        # Adicione 'timeout=30' para definir um tempo limite de 30 segundos
+        server = smtplib.SMTP_SSL('smtp.outlook.com', 465, timeout=30)
         server.login(remetente_email, remetente_senha)
         server.sendmail(remetente_email, destinatario, msg.as_string())
         server.quit()
         print(formatar_texto(f"E-mail com o relatório enviado para {destinatario} com sucesso.", cor=VERDE))
     except Exception as e:
         print(formatar_texto(f"Erro ao enviar o e-mail: {e}", cor=VERMELHO))
-        print("Verifique suas credenciais de e-mail e as configurações de segurança.")
+        print("Verifique suas credenciais de e-mail, as configurações de segurança e a conexão com a internet.")
+        print(f"Detalhes do erro: {e}")
+
+def mostrar_alerta_popup(itens):
+    """Exibe um popup com a lista de itens com estoque baixo."""
+    mensagem = "Os seguintes itens precisam de reposição:\n\n"
+    mensagem += "\n".join(itens)
+    messagebox.showwarning("ALERTA DE ESTOQUE BAIXO", mensagem)
 
 def verificar_e_enviar_alerta_estoque(estoque):
     """
     Verifica o estoque e envia um e-mail de alerta para itens com quantidade baixa.
+    Agora também exibe um popup de aviso.
     """
     itens_em_falta = []
     for codigo, dados in estoque.items():
@@ -672,6 +683,10 @@ def verificar_e_enviar_alerta_estoque(estoque):
             itens_em_falta.append(f"{descricao.capitalize()} ({dados['quantidade']} unidades)")
 
     if itens_em_falta:
+        # Exibir o popup de alerta
+        mostrar_alerta_popup(itens_em_falta)
+
+        # Enviar e-mail de alerta
         destinatario = 'padariamajurak@gmail.com'
         assunto = "ALERTA DE REPOSIÇÃO DE ESTOQUE"
         corpo = f"""
@@ -733,6 +748,10 @@ def menu_principal():
         limpar_tela()
 
 if __name__ == "__main__":
+    # Inicializa o tkinter em uma janela oculta para permitir o uso de popups
+    root = tk.Tk()
+    root.withdraw()
+    
     # Para rodar a versão de terminal, descomente a linha abaixo.
     menu_principal()
 
