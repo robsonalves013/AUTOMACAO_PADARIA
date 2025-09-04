@@ -17,6 +17,14 @@
             "valor": 300000.0,
             "data": "29/08/2025 11:30:56",
             "tipo": "receita"
+        },
+        {
+            "descricao": "Venda de 4 und. de pão de sal",
+            "valor": 2.4,
+            "data": "04/09/2025 13:10:15",
+            "tipo": "receita",
+            "forma_pagamento": "Dinheiro",
+            "plataforma_delivery": "N/A"
         }
     ],
     "despesas": [
@@ -28,17 +36,17 @@
         }
     ],
     "estoque": {
-        "p\u00e3o frances": {
+        "pão frances": {
             "quantidade": 9900
         },
-        "p\u00e3o de leite": {
+        "pão de leite": {
             "quantidade": 9999980
         },
         "000001": {
-            "descricao": "p\u00e3o de sal",
-            "quantidade": 1000,
+            "descricao": "pão de sal",
+            "quantidade": 996,
             "valor_unitario": 0.6,
-            "categoria": "P\u00e3es"
+            "categoria": "Pães"
         }
     }
 }

@@ -63,6 +63,11 @@ def post_venda_delivery():
 
     return jsonify({"message": message})
 
+@app.route('/vendas/diarias', methods=['GET'])
+def get_vendas_diarias():
+    """Endpoint para buscar as vendas diárias."""
+    return jsonify(db.receitas)
+
 @app.route('/fluxo_caixa/receita', methods=['POST'])
 def add_receita_api():
     """Endpoint para adicionar uma receita manual via API."""
@@ -88,3 +93,31 @@ def add_despesa_api():
 
     message = db.add_expense(descricao, valor)
     return jsonify({"message": message})
+
+@app.route('/vendas/cancelar', methods=['POST'])
+def cancelar_venda():
+    """Endpoint para cancelar uma venda com senha master."""
+    data = request.json
+    venda_id = data.get('id')
+    senha_master = data.get('senha')
+    
+    # SENHA MASTER PARA DEMONSTRAÇÃO. EM PRODUÇÃO, USE UM MÉTODO MAIS SEGURO!
+    MASTER_PASSWORD = "120724"
+
+    if senha_master != MASTER_PASSWORD:
+        return jsonify({"error": "Senha master incorreta"}), 403 # 403 Forbidden
+
+    venda_encontrada = False
+    for i, receita in enumerate(db.receitas):
+        if str(receita['id']) == str(venda_id):
+            db.receitas[i]['status'] = "Cancelada"
+            venda_encontrada = True
+            break
+    
+    if venda_encontrada:
+        return jsonify({"message": "Venda cancelada com sucesso!"})
+    else:
+        return jsonify({"error": "Venda não encontrada"}), 404
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)

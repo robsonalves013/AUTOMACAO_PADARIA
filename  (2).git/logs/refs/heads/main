@@ -1,0 +1,27 @@
+0000000000000000000000000000000000000000 70e955a70eec04639e2fd2a6a2ed2495c697710e Robson <rbn.alves@hotmail.com> 1756897043 -0300	clone: from https://github.com/robsonalves013/AUTOMACAO_PADARIA.git
+70e955a70eec04639e2fd2a6a2ed2495c697710e c5d115d42dd47c517b99b02a7439c0ab1a74cd28 Robson <rbn.alves@hotmail.com> 1756899384 -0300	commit: Update envio de email
+c5d115d42dd47c517b99b02a7439c0ab1a74cd28 6a5db9825fac11ac04dc869cf6e53e66cef4d6d7 Robson <rbn.alves@hotmail.com> 1756904443 -0300	commit: atualização
+6a5db9825fac11ac04dc869cf6e53e66cef4d6d7 0eba022cb864044e45a26de84fd00f358244bc77 Robson <rbn.alves@hotmail.com> 1756905709 -0300	commit: Criação de Interface WEB
+0eba022cb864044e45a26de84fd00f358244bc77 2ce4872d2742d35c14923177763f017bd390b983 Robson <rbn.alves@hotmail.com> 1756906560 -0300	commit: Atualização WEB
+2ce4872d2742d35c14923177763f017bd390b983 873429a78482bcac5d521374cc3e0a1e982f3cbb Robson <rbn.alves@hotmail.com> 1756906580 -0300	commit: Atualização Interface WEB
+873429a78482bcac5d521374cc3e0a1e982f3cbb 9b638104ff279645c12a0d5ab3201a2b512c7d28 Robson <rbn.alves@hotmail.com> 1756906768 -0300	commit: Atualização JS
+9b638104ff279645c12a0d5ab3201a2b512c7d28 2f8f8fd3ad0129a9c63a3d19ee0da475c7a381f1 Robson <rbn.alves@hotmail.com> 1756907055 -0300	commit: Atualização HTML
+2f8f8fd3ad0129a9c63a3d19ee0da475c7a381f1 b3e2df473e08a4f722cd8e07af7c8a0899a156ac Robson <rbn.alves@hotmail.com> 1756907119 -0300	commit: Atualização HTML
+b3e2df473e08a4f722cd8e07af7c8a0899a156ac 1733d41ef12ea5eeb0f7779a96ab10c2a21f5471 Robson <rbn.alves@hotmail.com> 1756907211 -0300	commit: Atualização da Interface WEB HTML
+1733d41ef12ea5eeb0f7779a96ab10c2a21f5471 3ca2f3e2d021877f8a7c2a05efcaddb701e02153 Robson <rbn.alves@hotmail.com> 1756907486 -0300	commit: Atualização de API
+3ca2f3e2d021877f8a7c2a05efcaddb701e02153 c642914d1175b56b45901e372b33312ebb0eae3a Robson <rbn.alves@hotmail.com> 1756907805 -0300	commit: melhorias api
+c642914d1175b56b45901e372b33312ebb0eae3a 25638bd68e231147b3d91641ab11d887991720ff Robson <rbn.alves@hotmail.com> 1756908284 -0300	commit: atualização de api
+25638bd68e231147b3d91641ab11d887991720ff 21133c5659323e03781af922a5225b02e06334f4 Robson <rbn.alves@hotmail.com> 1756908892 -0300	commit: atualização interfaceweb
+21133c5659323e03781af922a5225b02e06334f4 d235393f9e92a7d2b31f7415f1690ef76f57a0a5 Robson <rbn.alves@hotmail.com> 1756908978 -0300	commit: atualização interfaceweb estoque
+d235393f9e92a7d2b31f7415f1690ef76f57a0a5 31dfc151a8a79104554e982b1f9ba5c84ee026f9 Robson <rbn.alves@hotmail.com> 1756910572 -0300	commit: atualização completa api e web
+31dfc151a8a79104554e982b1f9ba5c84ee026f9 26329681ee4c922ad450632950f16fae4fe45958 Robson <rbn.alves@hotmail.com> 1756911997 -0300	commit: atualização
+26329681ee4c922ad450632950f16fae4fe45958 28f08d269677e6427bf62c716f4c5e9e2d4403e9 Robson <rbn.alves@hotmail.com> 1756912298 -0300	commit: atualização completa
+28f08d269677e6427bf62c716f4c5e9e2d4403e9 ec2adbbc6b4a0be6a59fd72a803e26f9520bf706 Robson <rbn.alves@hotmail.com> 1756912531 -0300	commit: atualização de dados
+ec2adbbc6b4a0be6a59fd72a803e26f9520bf706 8d89f82fff017c93bcb5a33373331fc6b878ea95 Robson <rbn.alves@hotmail.com> 1756989115 -0300	pull --tags origin main: Fast-forward
+8d89f82fff017c93bcb5a33373331fc6b878ea95 9f1144b4a6241d988aaba7b24a4cfae10fccf732 Robson <rbn.alves@hotmail.com> 1756991491 -0300	commit: update to all
+9f1144b4a6241d988aaba7b24a4cfae10fccf732 f772774c6937b211cce6f6369564143d89ab4e8b Robson <rbn.alves@hotmail.com> 1756991865 -0300	commit: update
+f772774c6937b211cce6f6369564143d89ab4e8b ce1a1689666c42e2e24fcd427b2835b02ea23aed Robson <rbn.alves@hotmail.com> 1756993684 -0300	commit: updtate all interfaces
+ce1a1689666c42e2e24fcd427b2835b02ea23aed 8b406f9d0c38df25b4c96d741b092ea7315d310f Robson <rbn.alves@hotmail.com> 1756995925 -0300	commit: update
+8b406f9d0c38df25b4c96d741b092ea7315d310f 263047cf2629732db1f2cdcde9834c8d5fe52205 Robson <rbn.alves@hotmail.com> 1756996978 -0300	commit: update
+263047cf2629732db1f2cdcde9834c8d5fe52205 cf404ea72aca899808c77ab9472c80dbeda14ad1 Robson <rbn.alves@hotmail.com> 1757000040 -0300	commit: update files
+cf404ea72aca899808c77ab9472c80dbeda14ad1 65f9ee5fca5768e1fb4ce306f4ff9cdf0394d090 Robson <rbn.alves@hotmail.com> 1757001375 -0300	commit: update
