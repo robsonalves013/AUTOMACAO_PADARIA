@@ -126,11 +126,31 @@
             "id_transacao": "f248bd460b37434ba0a14a6f44877b9c",
             "codigo_produto": "bolo de chocolate",
             "quantidade": 1,
-            "descricao": "Venda de 1 und. de bolo de chocolate",
-            "valor": 25.0,
+            "descricao": "Venda de 1 und. de bolo de chocolate - CANCELADA",
+            "valor": 0,
             "data": "03/09/2025 22:31:10",
             "tipo": "receita",
             "forma_pagamento": "Dinheiro"
+        },
+        {
+            "id_transacao": "aeadbf7998d846ab89e4dcc6ed2dfb87",
+            "codigo_produto": "000001",
+            "quantidade": 3,
+            "descricao": "Venda de 3 und. de p\u00e3o de sal",
+            "valor": 1.7999999999999998,
+            "data": "03/09/2025 22:43:48",
+            "tipo": "receita",
+            "forma_pagamento": "Dinheiro"
+        },
+        {
+            "id_transacao": "999f8f6bf7594880bc3aec668b40b743",
+            "codigo_produto": "000001",
+            "quantidade": 5,
+            "descricao": "Venda de 5 und. de p\u00e3o de sal (Delivery) - CANCELADA",
+            "valor": 0,
+            "data": "03/09/2025 22:44:09",
+            "tipo": "receita",
+            "plataforma_delivery": "iFood"
         }
     ],
     "despesas": [
@@ -155,7 +175,7 @@
             "descricao": "p\u00e3o de queijo"
         },
         "bolo de chocolate": {
-            "quantidade": 5,
+            "quantidade": 6,
             "valor_unitario": 25.0,
             "categoria": "Doces",
             "descricao": "bolo de chocolate"
@@ -198,7 +218,7 @@
         },
         "000001": {
             "descricao": "p\u00e3o de sal",
-            "quantidade": 89400,
+            "quantidade": 89397,
             "valor_unitario": 0.6,
             "categoria": "P\u00e3es"
         }

@@ -55,9 +55,10 @@ async function carregarVendasDiarias() {
             linha.dataset.id = venda.id_transacao; 
             // Verifica se a venda foi cancelada, mesmo mantendo a descrição
             const isCancelled = venda.descricao.includes("CANCELADA");
+            const isDelivery = venda.plataforma_delivery ? true : false;
             linha.innerHTML = `
                 <td style="${isCancelled ? 'text-decoration: line-through; color: #aaa;' : ''}">${venda.descricao}</td>
-                <td style="${isCancelled ? 'text-decoration: line-through; color: #aaa;' : ''}">R$ ${venda.valor.toFixed(2).replace('.', ',')}</td>
+                <td style="${isCancelled ? 'text-decoration: line-through; color: #aaa;' : ''}">${isDelivery ? '---' : 'R$ ' + venda.valor.toFixed(2).replace('.', ',')}</td>
                 <td style="${isCancelled ? 'text-decoration: line-through; color: #aaa;' : ''}">${venda.forma_pagamento || venda.plataforma_delivery || 'Manual'}</td>
                 <td style="${isCancelled ? 'text-decoration: line-through; color: #aaa;' : ''}">${venda.data.split(' ')[1]}</td>
                 <td>

@@ -5,6 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestão da Padaria</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* CSS para os Modais (Pop-ups) */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none; /* Inicia oculto */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .modal-content input, .modal-content button {
+            width: 90%;
+            padding: 10px;
+            margin-top: 15px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        .modal-content button {
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+        
+        .modal-content button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .modal-content button:hover:not(:disabled) {
+            background-color: #4cae4c;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-btn:hover, .close-btn:focus {
+            color: #000;
+        }
+
+        #troco-modal p {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+
+        #troco-valor {
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
 </head>
 <body>
 
@@ -35,31 +117,26 @@
             </div>
 
             <div class="form-container">
-                <h3>Venda Delivery</h3>
+                <h3>Venda por Delivery</h3>
                 <form id="form-venda-delivery">
                     <input type="text" id="venda-delivery-codigo" placeholder="Código de Barras ou Número do Item" required>
                     <input type="number" id="venda-delivery-quantidade" placeholder="Quantidade" required min="1">
-                    <select id="venda-delivery-plataforma" required>
-                        <option value="">Selecione a Plataforma</option>
-                        <option value="iFood">iFood</option>
-                        <option value="Uber Eats">Uber Eats</option>
-                        <option value="Própria">Própria</option>
-                    </select>
-                    <button type="submit">Registrar Delivery</button>
+                    <input type="text" id="venda-delivery-plataforma" placeholder="Plataforma (Ex: iFood, Rappi)" required>
+                    <button type="submit">Registrar Venda</button>
                 </form>
             </div>
 
             <hr>
 
-            <h3>Vendas Registradas Hoje</h3>
-            <div class="feedback-container" id="vendas-diarias-feedback"></div>
-            <div class="vendas-tabela-container">
+            <div class="table-container">
+                <h3>Vendas Diárias</h3>
+                <div class="feedback-container" id="vendas-diarias-feedback"></div>
                 <table id="tabela-vendas-diarias">
                     <thead>
                         <tr>
                             <th>Descrição</th>
                             <th>Valor</th>
-                            <th>Forma de Pagamento</th>
+                            <th>Forma de Pagamento / Plataforma</th>
                             <th>Horário</th>
                             <th>Ações</th>
                         </tr>
@@ -76,21 +153,23 @@
             <h2>Gestão de Estoque</h2>
             
             <div class="feedback-container" id="estoque-feedback"></div>
-            
+
             <div class="form-container">
-                <h3>Adicionar Produto</h3>
+                <h3>Adicionar/Atualizar Produto</h3>
                 <form id="form-adicionar-produto">
-                    <input type="text" id="add-codigo" placeholder="Código de Barras ou Número do Item" required>
-                    <input type="text" id="add-descricao" placeholder="Descrição" required>
+                    <input type="text" id="add-codigo" placeholder="Código de Barras" required>
+                    <input type="text" id="add-descricao" placeholder="Descrição do Produto" required>
                     <input type="number" id="add-quantidade" placeholder="Quantidade" required min="1">
                     <input type="number" id="add-valor" placeholder="Valor Unitário" step="0.01" required min="0.01">
                     <input type="text" id="add-categoria" placeholder="Categoria" required>
-                    <button type="submit">Adicionar/Atualizar Produto</button>
+                    <button type="submit">Adicionar/Atualizar</button>
                 </form>
             </div>
 
-            <h3>Estoque Atual</h3>
-            <div class="tabela-container">
+            <hr>
+
+            <div class="table-container">
+                <h3>Estoque Atual</h3>
                 <table id="tabela-estoque">
                     <thead>
                         <tr>
@@ -138,30 +217,26 @@
         <p>Sistema de Gestão &copy; 2025</p>
     </footer>
 
-    <div id="password-modal" class="modal">
+    <div class="modal-overlay" id="password-modal">
         <div class="modal-content">
             <span class="close-btn">&times;</span>
-            <h4>Digite a senha master para cancelar:</h4>
-            <input type="password" id="modal-password" placeholder="Senha master" autofocus>
+            <h3>Digite a Senha Master</h3>
+            <input type="password" id="modal-password" placeholder="Senha Master" required>
             <button id="modal-confirm-btn">Confirmar</button>
         </div>
     </div>
 
-    <div id="troco-modal" class="modal">
+    <div class="modal-overlay" id="troco-modal">
         <div class="modal-content">
             <span class="close-btn troco-close-btn">&times;</span>
-            <h4>Calculadora de Troco</h4>
-            <div id="troco-total-venda"></div>
-            <label for="troco-recebido">Valor Recebido (R$):</label>
-            <input type="number" id="troco-recebido" placeholder="Valor recebido" step="0.01" autofocus>
-            <div class="troco-resultado">
-                <p>Troco: <span id="troco-valor">R$ 0,00</span></p>
-            </div>
-            <button id="troco-confirm-btn">Registrar Venda</button>
+            <h3>Pagamento em Dinheiro</h3>
+            <p id="troco-total-venda"></p>
+            <input type="number" id="troco-recebido" placeholder="Valor recebido do cliente" step="0.01" required>
+            <p>Troco: <span id="troco-valor">R$ 0,00</span></p>
+            <button id="troco-confirm-btn">Finalizar Venda</button>
         </div>
     </div>
 
     <script src="script.js"></script>
-
 </body>
 </html>

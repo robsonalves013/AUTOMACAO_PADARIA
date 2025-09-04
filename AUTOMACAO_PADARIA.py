@@ -43,7 +43,7 @@ ASSINATURA = "Sistema desenvolvido por ROBSON ALVES"
 # --- Configurações do e-mail (ATUALIZAR COM SUAS INFORMAÇÕES) ---
 EMAIL_REMETENTE = 'robtechservice@outlook.com'
 SENHA_APP = 'ioohmnnkugrsulss'
-SENHA_MASTER = 'sua_senha_secreta_aqui'
+SENHA_MASTER = '120724'
 
 # ----------------------------------------
 # --- FUNÇÕES DE LÓGICA DO NEGÓCIO ---
@@ -169,8 +169,7 @@ def registrar_venda_delivery(receitas, estoque):
         
     plataforma = input("Digite a plataforma de delivery (ex: 'iFood', 'Rappi'): ")
     
-    valor_unitario = estoque[codigo]['valor_unitario']
-    valor_total = quantidade * valor_unitario
+    valor_total = 0 # Valor para delivery é zero
     
     estoque[codigo]['quantidade'] -= quantidade
     
@@ -179,7 +178,7 @@ def registrar_venda_delivery(receitas, estoque):
         'id_transacao': uuid.uuid4().hex,
         'codigo_produto': codigo,
         'quantidade': quantidade,
-        'descricao': f"Venda de {quantidade} und. de {estoque[codigo]['descricao']} (Delivery)",
+        'descricao': f"Venda de {quantidade} und. de {estoque[codigo]['descricao']} (Delivery) - SEM VALOR",
         'valor': valor_total,
         'data': agora,
         'tipo': 'receita',
@@ -317,8 +316,8 @@ def post_venda_delivery():
     if codigo not in estoque or estoque[codigo]['quantidade'] < quantidade:
         return jsonify({"error": "Estoque insuficiente ou produto não encontrado"}), 400
 
-    valor_unitario = estoque[codigo]['valor_unitario']
-    valor_total = quantidade * valor_unitario
+    # Valor de vendas delivery sempre é 0, pois a cobrança é feita pela plataforma
+    valor_total = 0
     estoque[codigo]['quantidade'] -= quantidade
 
     agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -683,9 +682,7 @@ def gerar_relatorio_vendas_diarias(receitas, enviar_automatico=False):
             assunto = f"Relatório de Vendas Diárias - {data_relatorio}"
             corpo = f"""
 Prezado(a),
-
 Segue em anexo o relatório de vendas diárias da padaria referente ao dia {data_relatorio}.
-
 Atenciosamente,
 Robson Alves - Gerente
 """
