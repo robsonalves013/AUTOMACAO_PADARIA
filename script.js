@@ -15,7 +15,7 @@ function mostrarFeedback(containerId, mensagem, tipo) {
 
 // Função para buscar e renderizar o estoque na tabela
 async function carregarEstoque() {
-    const tabelaEstoque = document.getElementById('tabela-estoque').getElementsByTagName('tbody')[0];
+    const tabelaEstoque = document.getElementById('dados_padaria').getElementsByTagName('tbody')[0];
     tabelaEstoque.innerHTML = ''; // Limpa a tabela antes de carregar
 
     try {
@@ -26,14 +26,19 @@ async function carregarEstoque() {
             const produto = estoque[codigo];
             const linha = tabelaEstoque.insertRow();
             
-            // NOVO: Adiciona a classe 'low-stock' se a quantidade for menor que 10
+            // Adiciona a classe 'low-stock' se a quantidade for menor que 10
             if (produto.quantidade < 10) {
                 linha.classList.add('low-stock');
             }
             
+            // Corrige o erro ao verificar se 'produto.descricao' existe
+            const descricaoFormatada = produto.descricao ? 
+                produto.descricao.charAt(0).toUpperCase() + produto.descricao.slice(1) :
+                'Descrição não disponível';
+            
             linha.innerHTML = `
                 <td>${codigo}</td>
-                <td>${produto.descricao.charAt(0).toUpperCase() + produto.descricao.slice(1)}</td>
+                <td>${descricaoFormatada}</td>
                 <td>${produto.quantidade}</td>
                 <td>R$ ${produto.valor_unitario.toFixed(2).replace('.', ',')}</td>
                 <td>${produto.categoria}</td>
@@ -44,7 +49,6 @@ async function carregarEstoque() {
         mostrarFeedback('estoque-feedback', 'Erro ao carregar estoque.', 'erro');
     }
 }
-
 // Função para buscar e renderizar as vendas diárias
 async function carregarVendasDiarias() {
     const tabelaVendas = document.getElementById('tabela-vendas-diarias').getElementsByTagName('tbody')[0];

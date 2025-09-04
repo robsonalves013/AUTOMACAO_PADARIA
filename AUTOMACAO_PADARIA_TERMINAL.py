@@ -37,6 +37,24 @@ try:
 except locale.Error:
     locale.setlocale(locale.LC_ALL, 'Portuguese_Brazil.1252')
 
+# Defina a pasta base para os relatórios (ex: na pasta de documentos do usuário)
+pasta_base_relatorios = os.path.join(os.path.expanduser('~'), 'Documents', 'Relatorios_Padaria')
+
+# Crie a pasta base se ela não existir
+if not os.path.exists(pasta_base_relatorios):
+    os.makedirs(pasta_base_relatorios)
+
+# Crie a subpasta com base na data atual
+data_hoje = datetime.date.today().strftime('%Y-%m-%d')
+caminho_subpasta = os.path.join(pasta_base_relatorios, f'Relatorio_Estoque_{data_hoje}')
+
+# Verifique se a subpasta já existe, caso contrário, crie-a
+if not os.path.exists(caminho_subpasta):
+    os.makedirs(caminho_subpasta)
+
+# Agora, a variável caminho_subpasta está definida e pode ser usada
+caminho_arquivo = os.path.join(caminho_subpasta, 'Relatorio_de_Estoque.xlsx')
+
 # Diretório para salvar os arquivos e subpastas
 DIRETORIO_DADOS = "relatorios_padaria"
 ASSINATURA = "Sistema desenvolvido por ROBSON ALVES"
@@ -549,17 +567,19 @@ def gerar_relatorios_estoque(estoque):
     subpasta = "Estoque"
     caminho_subpasta = criar_subdiretorio(subpasta)
     
-    dados_estoque = [{'Código de Barras': codigo, 'Produto': dados.get('descricao', codigo).capitalize(), 'Quantidade': dados['quantidade'], 'Valor Unitário': dados['valor_unitario'], 'Categoria': dados.get('categoria', 'N/A')} for codigo, dados in estoque.items()]
-    df_estoque = pd.DataFrame(dados_estoque)
+estoque = {}    
+dados_estoque = [{'Código de Barras': codigo, 'Produto': dados.get('descricao', codigo).capitalize(), 'Quantidade': dados['quantidade'], 'Valor Unitário': dados.get('valor_unitario', 'N/A'), 'Categoria': dados.get('categoria', 'N/A')} for codigo, dados in estoque.items()]
+
+df_estoque = pd.DataFrame(dados_estoque)
     
-    caminho_arquivo = os.path.join(caminho_subpasta, 'Relatorio_de_Estoque.xlsx')
+caminho_arquivo = os.path.join(caminho_subpasta, 'Relatorio_de_Estoque.xlsx')
     
-    if not df_estoque.empty:
+if not df_estoque.empty:
         df_estoque.to_excel(caminho_arquivo, index=False)
         formatar_planilha_excel(caminho_arquivo)
         adicionar_assinatura_excel(caminho_arquivo)
         print(f"Relatório de Estoque gerado com sucesso em '{caminho_arquivo}'")
-    else:
+else:
         print("O estoque está vazio. Não há dados para gerar o relatório.")
 
 def gerar_relatorio_vendas_diarias(receitas, enviar_automatico=False):
