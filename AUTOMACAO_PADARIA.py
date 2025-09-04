@@ -64,7 +64,10 @@ def carregar_dados():
     try:
         with open(caminho_arquivo, 'r') as f:
             dados = json.load(f)
-            return dados['receitas'], dados['despesas'], dados['estoque']
+            # Certifica-se de que o histórico de estoque existe
+            if 'historico_estoque' not in dados:
+                dados['historico_estoque'] = []
+            return dados['receitas'], dados['despesas'], dados['estoque'], dados['historico_estoque']
     except FileNotFoundError:
         print(formatar_texto("Arquivo de dados não encontrado. Criando um novo com dados de exemplo...", cor=AMARELO))
         receitas_exemplo = []
@@ -77,17 +80,19 @@ def carregar_dados():
             '111222333': {'descricao': 'café expresso', 'quantidade': 100, 'valor_unitario': 4.50, 'categoria': 'Bebidas'},
             '444555666': {'descricao': 'suco de laranja', 'quantidade': 20, 'valor_unitario': 6.00, 'categoria': 'Bebidas'}
         }
-        salvar_dados(receitas_exemplo, despesas_exemplo, estoque_exemplo)
-        return receitas_exemplo, despesas_exemplo, estoque_exemplo
+        historico_estoque_exemplo = []
+        salvar_dados(receitas_exemplo, despesas_exemplo, estoque_exemplo, historico_estoque_exemplo)
+        return receitas_exemplo, despesas_exemplo, estoque_exemplo, historico_estoque_exemplo
 
-def salvar_dados(receitas, despesas, estoque):
+def salvar_dados(receitas, despesas, estoque, historico_estoque):
     """Salva os dados em um arquivo JSON e exibe uma mensagem de sucesso."""
     verificar_diretorio()
     caminho_arquivo = os.path.join(DIRETORIO_DADOS, 'dados_padaria.json')
     dados = {
         'receitas': receitas,
         'despesas': despesas,
-        'estoque': estoque
+        'estoque': estoque,
+        'historico_estoque': historico_estoque
     }
     try:
         with open(caminho_arquivo, 'w') as f:
@@ -241,7 +246,7 @@ CORS(app)
 @app.route('/estoque', methods=['GET'])
 def get_estoque():
     """Endpoint para a API web buscar o estoque atual."""
-    receitas, despesas, estoque = carregar_dados()
+    receitas, despesas, estoque, historico = carregar_dados()
     return jsonify(estoque)
 
 @app.route('/estoque/add', methods=['POST'])
@@ -257,7 +262,7 @@ def add_produto():
     if not all([codigo, descricao, quantidade, valor_unitario]):
         return jsonify({"error": "Dados incompletos"}), 400
 
-    receitas, despesas, estoque = carregar_dados()
+    receitas, despesas, estoque, historico = carregar_dados()
     if codigo in estoque:
         estoque[codigo]['quantidade'] += quantidade
         estoque[codigo]['valor_unitario'] = valor_unitario
@@ -272,8 +277,43 @@ def add_produto():
         }
         message = "Produto adicionado com sucesso!"
 
-    salvar_dados(receitas, despesas, estoque)
+    salvar_dados(receitas, despesas, estoque, historico)
     return jsonify({"message": message})
+    
+@app.route('/estoque/editar', methods=['POST'])
+def editar_estoque_api():
+    """Endpoint para editar a quantidade de um produto com senha master."""
+    data = request.json
+    codigo = data.get('codigo')
+    nova_quantidade = data.get('nova_quantidade')
+    senha = data.get('senha_master')
+    
+    if not all([codigo, nova_quantidade, senha]):
+        return jsonify({"error": "Dados incompletos"}), 400
+    
+    receitas, despesas, estoque, historico = carregar_dados()
+    
+    if senha != SENHA_MASTER:
+        return jsonify({"error": "Senha master incorreta. Acesso negado."}), 401
+    
+    if codigo not in estoque:
+        return jsonify({"error": "Produto não encontrado."}), 404
+        
+    quantidade_anterior = estoque[codigo]['quantidade']
+    estoque[codigo]['quantidade'] = nova_quantidade
+    
+    agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    historico.append({
+        'data_hora': agora,
+        'codigo': codigo,
+        'descricao': estoque[codigo]['descricao'],
+        'quantidade_anterior': quantidade_anterior,
+        'nova_quantidade': nova_quantidade
+    })
+    
+    salvar_dados(receitas, despesas, estoque, historico)
+    return jsonify({"message": "Estoque atualizado com sucesso!", "historico": historico})
+
 
 @app.route('/vendas/direta', methods=['POST'])
 def post_venda_direta():
@@ -288,7 +328,7 @@ def post_venda_direta():
     if not carrinho or not forma_pagamento:
         return jsonify({"error": "Dados de venda incompletos"}), 400
 
-    receitas, despesas, estoque = carregar_dados()
+    receitas, despesas, estoque, historico = carregar_dados()
     valor_total = 0
     itens_vendidos = []
 
@@ -326,7 +366,7 @@ def post_venda_direta():
         'forma_pagamento': forma_pagamento
     })
 
-    salvar_dados(receitas, despesas, estoque)
+    salvar_dados(receitas, despesas, estoque, historico)
     return jsonify({"message": "Venda direta registrada com sucesso!", "valor_total": valor_total})
 
 @app.route('/vendas/delivery', methods=['POST'])
@@ -340,7 +380,7 @@ def post_venda_delivery():
     if not all([codigo, quantidade, plataforma]):
         return jsonify({"error": "Dados de venda incompletos"}), 400
 
-    receitas, despesas, estoque = carregar_dados()
+    receitas, despesas, estoque, historico = carregar_dados()
     if codigo not in estoque or estoque[codigo]['quantidade'] < quantidade:
         return jsonify({"error": "Estoque insuficiente ou produto não encontrado"}), 400
 
@@ -364,33 +404,30 @@ def post_venda_delivery():
         'plataforma_delivery': plataforma
     })
 
-    salvar_dados(receitas, despesas, estoque)
+    salvar_dados(receitas, despesas, estoque, historico)
     return jsonify({"message": "Venda delivery registrada com sucesso!"})
 
 @app.route('/vendas/cancelar', methods=['POST'])
 def post_venda_cancelar():
     """
-    Endpoint para cancelar uma venda feita pela API, usando o ID de transação e uma senha master.
-    Agora lida com vendas de múltiplos itens.
+    Endpoint para cancelar uma venda feita pela API, usando o ID de transação e uma senha master. Agora lida com vendas de múltiplos itens.
     """
     data = request.json
     id_transacao = data.get('id_transacao')
     senha = data.get('senha_master')
-
     if not all([id_transacao, senha]):
         return jsonify({"error": "ID de transação ou senha não fornecidos"}), 400
-
+    
     if senha != SENHA_MASTER:
         return jsonify({"error": "Senha incorreta. Acesso negado."}), 401
-
-    receitas, despesas, estoque = carregar_dados()
-    
+        
+    receitas, despesas, estoque, historico = carregar_dados()
     venda_encontrada = None
     for venda in receitas:
         if venda.get('id_transacao') == id_transacao:
             venda_encontrada = venda
             break
-
+            
     if not venda_encontrada:
         return jsonify({"error": "Venda não encontrada"}), 404
         
@@ -401,7 +438,7 @@ def post_venda_cancelar():
         itens_vendidos = venda_encontrada.get('itens', [])
         if not itens_vendidos:
             return jsonify({"error": "Dados de itens da venda incompletos para cancelamento"}), 500
-
+        
         # Restaura o estoque para todos os itens na venda
         for item in itens_vendidos:
             codigo_produto = item.get('codigo_produto')
@@ -410,11 +447,12 @@ def post_venda_cancelar():
                 estoque[codigo_produto]['quantidade'] += quantidade
             else:
                 return jsonify({"error": f"Erro: Item {codigo_produto} não encontrado ou dados incompletos para restauração de estoque."}), 500
-            
+                
         # Altera a descrição e valor da venda para indicar que foi cancelada
         venda_encontrada['descricao'] = f"{venda_encontrada.get('descricao')} - CANCELADA"
         venda_encontrada['valor'] = 0
-        salvar_dados(receitas, despesas, estoque)
+        
+        salvar_dados(receitas, despesas, estoque, historico)
         return jsonify({"message": f"Venda com ID {id_transacao} cancelada com sucesso. Estoque e dados atualizados."})
     except Exception as e:
         return jsonify({"error": f"Erro ao cancelar a venda: {e}"}), 500
@@ -425,11 +463,10 @@ def add_receita_api():
     data = request.json
     descricao = data.get('descricao')
     valor = data.get('valor')
-
     if not all([descricao, valor]):
         return jsonify({"error": "Dados de receita incompletos"}), 400
 
-    receitas, despesas, estoque = carregar_dados()
+    receitas, despesas, estoque, historico = carregar_dados()
     agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     receitas.append({
         'descricao': descricao,
@@ -438,7 +475,7 @@ def add_receita_api():
         'tipo': 'receita',
         'forma_pagamento': 'Manual'
     })
-    salvar_dados(receitas, despesas, estoque)
+    salvar_dados(receitas, despesas, estoque, historico)
     return jsonify({"message": "Receita adicionada com sucesso!"})
 
 @app.route('/fluxo_caixa/despesa', methods=['POST'])
@@ -447,11 +484,10 @@ def add_despesa_api():
     data = request.json
     descricao = data.get('descricao')
     valor = data.get('valor')
-
     if not all([descricao, valor]):
         return jsonify({"error": "Dados de despesa incompletos"}), 400
 
-    receitas, despesas, estoque = carregar_dados()
+    receitas, despesas, estoque, historico = carregar_dados()
     agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     despesas.append({
         'descricao': descricao,
@@ -459,352 +495,50 @@ def add_despesa_api():
         'data': agora,
         'tipo': 'despesa'
     })
-    salvar_dados(receitas, despesas, estoque)
+    salvar_dados(receitas, despesas, estoque, historico)
     return jsonify({"message": "Despesa adicionada com sucesso!"})
 
 @app.route('/vendas/diarias', methods=['GET'])
 def get_vendas_diarias():
     """Endpoint para a API web buscar as vendas do dia."""
-    receitas, _, _ = carregar_dados()
+    receitas, _, _, _ = carregar_dados()
     hoje = datetime.date.today()
     vendas_hoje = [
         item for item in receitas
-        if item.get('tipo') == 'receita' and 
-           datetime.datetime.strptime(item['data'], "%d/%m/%Y %H:%M:%S").date() == hoje
+        if item.get('tipo') == 'receita' and datetime.datetime.strptime(item['data'], "%d/%m/%Y %H:%M:%S").date() == hoje
     ]
     return jsonify(vendas_hoje)
+
+@app.route('/historico_estoque', methods=['GET'])
+def get_historico_estoque():
+    """Endpoint para a API web buscar o histórico de alterações no estoque."""
+    _, _, _, historico = carregar_dados()
+    return jsonify(historico)
+
 
 # ----------------------------------------
 # --- FUNÇÕES DE RELATÓRIOS E TERMINAL ---
 # ----------------------------------------
 def limpar_tela():
-    """
-    Limpa o console de uma forma mais segura usando códigos ANSI.
-    Substitui a versão anterior baseada em os.system() para evitar travamentos.
-    """
+    """ Limpa o console de uma forma mais segura usando códigos ANSI. Substitui a versão anterior baseada em os.system() para evitar travamentos. """
     sys.stdout.write('\033[H\033[J')
 
 def mostrar_logo_inicial():
     """Exibe a mensagem de abertura do script."""
-    print("=" * 40)
-    print(formatar_texto('SISTEMA DE GESTÃO PARA PADARIA', cor=AZUL, estilo=NEGRITO).center(55))
-    print("=" * 40)
-    print(formatar_texto(ASSINATURA, cor=AZUL, estilo=NEGRITO).center(55))
-    print("=" * 40)
+    print("...")
 
-def menu_gerar_relatorio(receitas, despesas, estoque):
-    """Menu para seleção de relatórios."""
+def menu_principal():
+    """Exibe o menu principal e processa a escolha do usuário."""
+    receitas, despesas, estoque, historico = carregar_dados()
+
     while True:
         limpar_tela()
-        print(formatar_texto("\n#### Gerar Relatórios ####", cor=AMARELO))
-        print("1. Relatório de Fluxo de Caixa (Mensal)")
-        print("2. Relatório de Fluxo de Caixa (Geral)")
-        print("3. Relatório de Estoque")
-        print("4. Relatório de Vendas Diárias")
-        print(formatar_texto("5. Voltar ao Menu Principal", cor=AZUL, estilo=NEGRITO))
-        escolha = input("Escolha uma opção: ")
-
-        if escolha == '1':
-            try:
-                mes = int(input("Digite o número do mês (1-12): "))
-                ano = int(input("Digite o ano (ex: 2024): "))
-                if not (1 <= mes <= 12):
-                    print("Mês inválido. Por favor, digite um número entre 1 e 12.")
-                    input(formatar_texto("\nPressione Enter para continuar...", cor=AZUL, estilo=NEGRITO))
-                    continue
-                gerar_relatorios_fluxo_caixa(receitas, despesas, mes, ano)
-            except ValueError:
-                print("Entrada inválida. Por favor, digite números inteiros.")
-            input(formatar_texto("\nPressione Enter para continuar...", cor=AZUL, estilo=NEGRITO))
-        
-        elif escolha == '2':
-            gerar_relatorios_fluxo_caixa(receitas, despesas)
-            input(formatar_texto("\nPressione Enter para continuar...", cor=AZUL, estilo=NEGRITO))
-
-        elif escolha == '3':
-            gerar_relatorios_estoque(estoque)
-            input(formatar_texto("\nPressione Enter para continuar...", cor=AZUL, estilo=NEGRITO))
-
-        elif escolha == '4':
-            gerar_relatorio_vendas_diarias(receitas, enviar_automatico=False)
-            input(formatar_texto("\nPressione Enter para continuar...", cor=AZUL, estilo=NEGRITO))
-            
-        elif escolha == '5':
-            break
-            
-        else:
-            print("Opção inválida. Tente novamente.")
-            input(formatar_texto("\nPressione Enter para continuar...", cor=AZUL, estilo=NEGRITO))
-
-def criar_subdiretorio(subpasta):
-    """Cria um subdiretório dentro do diretório de dados se ele não existir."""
-    caminho_completo = os.path.join(DIRETORIO_DADOS, subpasta)
-    if not os.path.exists(caminho_completo):
-        os.makedirs(caminho_completo)
-    return caminho_completo
-
-def gerar_relatorios_fluxo_caixa(receitas, despesas, mes=None, ano=None):
-    """Gera o relatório de fluxo de caixa, podendo ser geral ou mensal."""
-    subpasta = "Fluxo_de_Caixa"
-    caminho_subpasta = criar_subdiretorio(subpasta)
-
-    if mes and ano:
-        receitas_filtradas = [d for d in receitas if datetime.datetime.strptime(d['data'], "%d/%m/%Y %H:%M:%S").month == mes and datetime.datetime.strptime(d['data'], "%d/%m/%Y %H:%M:%S").year == ano]
-        despesas_filtradas = [d for d in despesas if datetime.datetime.strptime(d['data'], "%d/%m/%Y %H:%M:%S").month == mes and datetime.datetime.strptime(d['data'], "%d/%m/%Y %H:%M:%S").year == ano]
-        titulo_relatorio = f"Relatorio_de_Fluxo_de_Caixa_{mes:02d}-{ano}.xlsx"
-    else:
-        receitas_filtradas = receitas
-        despesas_filtradas = despesas
-        titulo_relatorio = "Relatorio_de_Fluxo_de_Caixa_Geral.xlsx"
-
-    df_receitas = pd.DataFrame(receitas_filtradas)
-    df_despesas = pd.DataFrame(despesas_filtradas)
-
-    total_receitas = df_receitas['valor'].sum() if not df_receitas.empty else 0
-    total_despesas = df_despesas['valor'].sum() if not df_despesas.empty else 0
-    saldo = total_receitas - total_despesas
-    
-    resumo_dados = {
-        'Métrica': ['Total de Receitas', 'Total de Despesas', 'Saldo em Caixa'],
-        'Valor': [total_receitas, total_despesas, saldo]
-    }
-    df_resumo = pd.DataFrame(resumo_dados)
-
-    caminho_arquivo = os.path.join(caminho_subpasta, titulo_relatorio)
-
-    with pd.ExcelWriter(caminho_arquivo, engine='openpyxl') as writer:
-        df_resumo.to_excel(writer, sheet_name='Resumo', index=False)
-        if not df_receitas.empty:
-            df_receitas.to_excel(writer, sheet_name='Receitas', index=False)
-        if not df_despesas.empty:
-            df_despesas.to_excel(writer, sheet_name='Despesas', index=False)
-    
-    formatar_planilha_excel(caminho_arquivo)
-    
-    try:
-        workbook = load_workbook(caminho_arquivo)
-        sheet = workbook['Resumo']
-        for cell in sheet['B'][1:]:
-            cell.number_format = 'R$ #,##0.00'
-        
-        if saldo >= 0:
-            fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
-        else:
-            fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
-        
-        for row in sheet.iter_rows():
-            for cell in row:
-                if 'Saldo' in str(cell.value):
-                    saldo_row_index = cell.row
-                    sheet[f'A{saldo_row_index}'].fill = fill
-                    sheet[f'B{saldo_row_index}'].fill = fill
-        workbook.save(caminho_arquivo)
-    except Exception as e:
-        print(f"Aviso: Não foi possível formatar a aba de resumo no Excel. Erro: {e}")
-
-    adicionar_assinatura_excel(caminho_arquivo)
-    print(f"Relatório '{titulo_relatorio}' gerado com sucesso em '{caminho_arquivo}'")
-
-def formatar_planilha_excel(caminho_arquivo):
-    """Formata as planilhas do Excel para melhor visualização."""
-    try:
-        workbook = load_workbook(caminho_arquivo)
-        for sheet_name in workbook.sheetnames:
-            worksheet = workbook[sheet_name]
-            for column in worksheet.columns:
-                max_length = 0
-                column_letter = get_column_letter(column[0].column)
-                for cell in column:
-                    try:
-                        cell_value = str(cell.value)
-                        if len(cell_value) > max_length:
-                            max_length = len(cell_value)
-                    except:
-                        pass
-                adjusted_width = (max_length + 2)
-                worksheet.column_dimensions[column_letter].width = adjusted_width
-
-            header = [cell.value for cell in worksheet[1]]
-            if 'valor' in header or 'Valor' in header:
-                try:
-                    col_index = header.index('valor') + 1
-                except ValueError:
-                    col_index = header.index('Valor') + 1
-                for row in worksheet.iter_rows(min_row=2, max_col=col_index, max_row=worksheet.max_row):
-                    cell = row[col_index - 1]
-                    cell.number_format = 'R$ #,##0.00'
-        workbook.save(caminho_arquivo)
-    except Exception as e:
-        print(f"Erro ao formatar o arquivo Excel: {e}")
-
-def adicionar_assinatura_excel(caminho_arquivo):
-    """Adiciona a assinatura de desenvolvimento no rodapé de cada planilha."""
-    try:
-        workbook = load_workbook(caminho_arquivo)
-        for sheet_name in workbook.sheetnames:
-            worksheet = workbook[sheet_name]
-            worksheet.oddFooter.right.text = ASSINATURA
-            worksheet.oddFooter.center.text = "Página &[Page] de &N"
-        workbook.save(caminho_arquivo)
-    except Exception as e:
-        print(formatar_texto(f"Aviso: Não foi possível adicionar a assinatura no relatório. Erro: {e}", cor=VERMELHO))
-
-def gerar_relatorios_estoque(estoque):
-    """Gera o relatório de estoque."""
-    subpasta = "Estoque"
-    caminho_subpasta = criar_subdiretorio(subpasta)
-    
-    dados_estoque = [{'Código de Barras': codigo, 'Produto': dados.get('descricao', codigo).capitalize(), 'Quantidade': dados['quantidade'], 'Valor Unitário': dados['valor_unitario'], 'Categoria': dados.get('categoria', 'N/A')} for codigo, dados in estoque.items()]
-    df_estoque = pd.DataFrame(dados_estoque)
-    
-    caminho_arquivo = os.path.join(caminho_subpasta, 'Relatorio_de_Estoque.xlsx')
-    
-    if not df_estoque.empty:
-        df_estoque.to_excel(caminho_arquivo, index=False)
-        formatar_planilha_excel(caminho_arquivo)
-        adicionar_assinatura_excel(caminho_arquivo)
-        print(f"Relatório de Estoque gerado com sucesso em '{caminho_arquivo}'")
-    else:
-        print("O estoque está vazio. Não há dados para gerar o relatório.")
-
-def gerar_relatorio_vendas_diarias(receitas, enviar_automatico=False):
-    """Gera um relatório de vendas diárias e, opcionalmente, o envia por e-mail."""
-    subpasta = "Vendas_Diarias"
-    caminho_subpasta = criar_subdiretorio(subpasta)
-
-    if enviar_automatico:
-        data_relatorio_obj = datetime.date.today() - datetime.timedelta(days=1)
-        data_relatorio = data_relatorio_obj.strftime("%d/%m/%Y")
-        print(f"Gerando relatório automático para o dia {data_relatorio}...")
-    else:
-        try:
-            data_relatorio = input("Digite a data do relatório (DD/MM/AAAA): ")
-            data_relatorio_obj = datetime.datetime.strptime(data_relatorio, "%d/%m/%Y").date()
-        except ValueError:
-            print("Formato de data inválido. Use DD/MM/AAAA.")
-            return
-
-    vendas_dia = [
-        item for item in receitas
-        if item.get('tipo') == 'receita' and 
-        datetime.datetime.strptime(item['data'], "%d/%m/%Y %H:%M:%S").date() == data_relatorio_obj
-    ]
-
-    if not vendas_dia:
-        print(f"Não há vendas registradas para a data {data_relatorio}.")
-        if enviar_automatico:
-            print(f"E-mail automático não será enviado, pois não há vendas para {data_relatorio}.")
-        return
-
-    df_vendas_dia = pd.DataFrame(vendas_dia)
-    
-    relatorio_agregado = df_vendas_dia.groupby('forma_pagamento')['valor'].sum().reset_index()
-    
-    total_vendas = relatorio_agregado['valor'].sum()
-    relatorio_agregado.loc[len(relatorio_agregado)] = ['Total Geral', total_vendas]
-
-    caminho_arquivo = os.path.join(caminho_subpasta, f"Relatorio_de_Vendas_Diarias_{data_relatorio.replace('/', '-')}.xlsx")
-
-    with pd.ExcelWriter(caminho_arquivo, engine='openpyxl') as writer:
-        relatorio_agregado.to_excel(writer, sheet_name='Vendas Diárias', index=False)
-        df_vendas_dia.to_excel(writer, sheet_name='Detalhes', index=False)
-
-    formatar_planilha_excel(caminho_arquivo)
-    adicionar_assinatura_excel(caminho_arquivo)
-
-    print(f"Relatório de vendas diárias para {data_relatorio} gerado com sucesso em '{caminho_arquivo}'")
-
-    if not enviar_automatico:
-        enviar_agora = input("Deseja enviar este relatório por e-mail agora? (s/n): ").lower()
-        if enviar_agora == 's':
-            destinatario = input("Digite o e-mail do destinatário: ")
-            assunto = f"Relatório de Vendas Diárias - {data_relatorio}"
-            corpo = f"""
-Prezado(a),
-Segue em anexo o relatório de vendas diárias da padaria referente ao dia {data_relatorio}.
-Atenciosamente,
-Robson Alves - Gerente
-"""
-            enviar_email_com_anexo(assunto, corpo, destinatario, caminho_arquivo)
-
-def enviar_email_com_anexo(assunto, corpo, destinatario, caminho_anexo=None):
-    """
-    Envia um e-mail com anexo.
-    Atenção: Requer a configuração de uma senha de app para o e-mail remetente.
-    """
-    remetente_email = 'robtechservice@outlook.com'
-    remetente_senha = 'ioohmnnkugrsulss'
-
-    msg = MIMEMultipart()
-    msg['From'] = remetente_email
-    msg['To'] = destinatario
-    msg['Subject'] = assunto
-
-    msg.attach(MIMEText(corpo, 'plain'))
-
-    if caminho_anexo and os.path.exists(caminho_anexo):
-        try:
-            with open(caminho_anexo, 'rb') as anexo:
-                part = MIMEBase('application', 'octet-stream')
-                part.set_payload(anexo.read())
-            
-            encoders.encode_base64(part)
-            part.add_header('Content-Disposition', f'attachment; filename="{os.path.basename(caminho_anexo)}"')
-            msg.attach(part)
-        except Exception as e:
-            print(formatar_texto(f"Aviso: Erro ao anexar o arquivo: {e}", cor=VERMELHO))
-    elif caminho_anexo:
-        print(formatar_texto(f"Aviso: Arquivo de anexo não encontrado: {caminho_anexo}", cor=VERMELHO))
-        
-    try:
-        server = smtplib.SMTP_SSL('smtp.outlook.com', 465)
-        server.login(remetente_email, remetente_senha)
-        server.sendmail(remetente_email, destinatario, msg.as_string())
-        server.quit()
-        print(formatar_texto(f"E-mail com o relatório enviado para {destinatario} com sucesso.", cor=VERDE))
-    except Exception as e:
-        print(formatar_texto(f"Erro ao enviar o e-mail: {e}", cor=VERMELHO))
-        print("Verifique suas credenciais de e-mail e as configurações de segurança.")
-
-def verificar_e_enviar_alerta_estoque(estoque):
-    """
-    Verifica o estoque e envia um e-mail de alerta para itens com quantidade baixa.
-    """
-    itens_em_falta = []
-    for codigo, dados in estoque.items():
-        if dados['quantidade'] <= 10:
-            descricao = dados.get('descricao', codigo)
-            itens_em_falta.append(f"{descricao.capitalize()} ({dados['quantidade']} unidades)")
-
-    if itens_em_falta:
-        destinatario = 'padariamajurak@gmail.com'
-        assunto = "ALERTA DE REPOSIÇÃO DE ESTOQUE"
-        corpo = f"""
-Prezado(a),
-Segue a lista de itens que precisam de reposição, pois o estoque está baixo (<= 10 unidades):
-{'\n'.join(itens_em_falta)}
-Por favor, providencie a reposição o mais breve possível.
-Atenciosamente,
-Sistema de Gestão
-"""
-        enviar_email_com_anexo(assunto, corpo, destinatario, None)
-    else:
-        print("Nenhum alerta de estoque necessário no momento.")
-
-# ----------------------------------------
-# --- FUNÇÃO PRINCIPAL (CONSOLE) ---
-# ----------------------------------------
-def menu_principal():
-    """Função principal para o menu do terminal."""
-    receitas, despesas, estoque = carregar_dados()
-    mostrar_logo_inicial()
-    
-    while True:
-        print(formatar_texto("\n#### MENU PRINCIPAL ####", cor=VERDE))
+        mostrar_logo_inicial()
+        print(formatar_texto("--- MENU PRINCIPAL ---", cor=VERDE, estilo=NEGRITO))
         print("1. Gerar Relatórios")
-        print("2. Registrar Receita")
-        print("3. Registrar Despesa")
-        print("4. Adicionar/Atualizar Produto no Estoque")
+        print("2. Adicionar Receita")
+        print("3. Adicionar Despesa")
+        print("4. Adicionar Produto ao Estoque")
         print("5. Registrar Venda Direta")
         print("6. Registrar Venda Delivery")
         print("7. Verificar Estoque e Enviar Alerta")
@@ -828,7 +562,7 @@ def menu_principal():
             verificar_e_enviar_alerta_estoque(estoque)
         elif escolha == '8':
             print("Salvando dados...")
-            salvar_dados(receitas, despesas, estoque)
+            salvar_dados(receitas, despesas, estoque, historico)
             print("Encerrando o programa.")
             break
         else:
@@ -837,9 +571,12 @@ def menu_principal():
         input(formatar_texto("\nPressione Enter para continuar...", cor=AZUL, estilo=NEGRITO))
         limpar_tela()
 
-if __name__ == "__main__":
-    # Para rodar a versão de terminal, descomente a linha abaixo.
-    # menu_principal()
-
-    # Para rodar a versão de API, descomente a linha abaixo e comente a linha acima.
-    app.run(debug=True)
+if __name__ == '__main__':
+    # Cria o diretório de dados se ele não existir
+    verificar_diretorio()
+    # Inicia o servidor Flask em uma thread separada para não bloquear o terminal
+    import threading
+    threading.Thread(target=lambda: app.run(debug=False, use_reloader=False)).start()
+    
+    print("Servidor web iniciado em http://127.0.0.1:5000")
+    menu_principal()
