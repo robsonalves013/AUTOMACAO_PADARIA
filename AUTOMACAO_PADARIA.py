@@ -43,7 +43,7 @@ ASSINATURA = "Sistema desenvolvido por ROBSON ALVES"
 # --- Configurações do e-mail (ATUALIZAR COM SUAS INFORMAÇÕES) ---
 EMAIL_REMETENTE = 'robtechservice@outlook.com'
 SENHA_APP = 'ioohmnnkugrsulss'
-SENHA_MASTER = 'sua_senha_secreta_aqui'
+SENHA_MASTER = '120724'
 
 # ----------------------------------------
 # --- FUNÇÕES DE LÓGICA DO NEGÓCIO ---
