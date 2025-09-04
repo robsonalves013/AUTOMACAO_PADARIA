@@ -1,3 +1,6 @@
+// Variáveis globais para o carrinho de compras
+let carrinho = [];
+
 // Função para exibir mensagens de feedback na interface
 function mostrarFeedback(containerId, mensagem, tipo) {
     const container = document.getElementById(containerId);
@@ -149,9 +152,8 @@ let totalVendaGlobal = 0;
 let vendaDataGlobal = null;
 
 // Função para abrir o modal do troco
-function abrirModalTroco(totalVenda, vendaData) {
+function abrirModalTroco(totalVenda) {
     totalVendaGlobal = totalVenda;
-    vendaDataGlobal = vendaData;
     totalVendaDisplay.textContent = `Total da Venda: R$ ${totalVenda.toFixed(2).replace('.', ',')}`;
     recebidoInput.value = '';
     trocoValorSpan.textContent = 'R$ 0,00';
@@ -170,7 +172,7 @@ recebidoInput.addEventListener('input', () => {
 confirmBtnTroco.addEventListener('click', () => {
     if (recebidoInput.value && parseFloat(recebidoInput.value) >= totalVendaGlobal) {
         modalTroco.style.display = 'none';
-        processarVendaDiretaAPI(vendaDataGlobal.codigo, vendaDataGlobal.quantidade, vendaDataGlobal.formaPagamento);
+        processarVendaDiretaAPI('Dinheiro');
     } else {
         mostrarFeedback('vendas-feedback', 'Valor recebido insuficiente ou inválido.', 'erro');
     }
@@ -193,19 +195,110 @@ window.addEventListener('click', (event) => {
 
 // --- Funções para registrar formulários ---
 
-// Nova função para processar a venda e chamar a API
-async function processarVendaDiretaAPI(codigo, quantidade, formaPagamento) {
+// Novo: Adiciona item ao carrinho
+async function adicionarItemAoCarrinho(event) {
+    event.preventDefault();
+    const codigo = document.getElementById('venda-direta-codigo').value;
+    const quantidade = parseInt(document.getElementById('venda-direta-quantidade').value);
+
+    if (!codigo || !quantidade) {
+        mostrarFeedback('vendas-feedback', 'Por favor, preencha o código e a quantidade.', 'erro');
+        return;
+    }
+
+    try {
+        const response = await fetch(`http://127.0.0.1:5000/estoque`);
+        const estoque = await response.json();
+        const produto = estoque[codigo];
+
+        if (!produto) {
+            mostrarFeedback('vendas-feedback', 'Produto não encontrado no estoque.', 'erro');
+            return;
+        }
+
+        if (produto.quantidade < quantidade) {
+            mostrarFeedback('vendas-feedback', `Estoque insuficiente! Disponível: ${produto.quantidade}.`, 'erro');
+            return;
+        }
+
+        // Verifica se o item já está no carrinho e atualiza
+        const itemExistente = carrinho.find(item => item.codigo === codigo);
+        if (itemExistente) {
+            itemExistente.quantidade += quantidade;
+        } else {
+            carrinho.push({
+                codigo: codigo,
+                descricao: produto.descricao,
+                quantidade: quantidade,
+                valor_unitario: produto.valor_unitario
+            });
+        }
+        
+        mostrarFeedback('vendas-feedback', `Item ${produto.descricao} adicionado ao carrinho.`, 'sucesso');
+        renderizarCarrinho();
+        document.getElementById('form-venda-direta').reset();
+    } catch (error) {
+        console.error('Erro ao adicionar item:', error);
+        mostrarFeedback('vendas-feedback', 'Erro ao conectar com a API.', 'erro');
+    }
+}
+
+// Novo: Renderiza o carrinho na interface
+function renderizarCarrinho() {
+    const tabelaCarrinho = document.getElementById('tabela-carrinho').getElementsByTagName('tbody')[0];
+    const carrinhoTotalDisplay = document.getElementById('carrinho-total');
+    const finalizarContainer = document.getElementById('finalizar-venda-container');
+    const finalizarBtn = document.getElementById('finalizar-btn');
+    tabelaCarrinho.innerHTML = '';
+    
+    let total = 0;
+    carrinho.forEach(item => {
+        const subtotal = item.quantidade * item.valor_unitario;
+        total += subtotal;
+        const linha = tabelaCarrinho.insertRow();
+        linha.innerHTML = `
+            <td>${item.descricao.charAt(0).toUpperCase() + item.descricao.slice(1)}</td>
+            <td>${item.quantidade}</td>
+            <td>R$ ${subtotal.toFixed(2).replace('.', ',')}</td>
+        `;
+    });
+
+    carrinhoTotalDisplay.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+
+    if (carrinho.length > 0) {
+        finalizarContainer.style.display = 'block';
+        finalizarBtn.disabled = false;
+    } else {
+        finalizarContainer.style.display = 'none';
+        finalizarBtn.disabled = true;
+    }
+}
+
+// Novo: Finaliza a venda enviando o carrinho para a API
+async function processarVendaDiretaAPI(formaPagamento) {
+    if (carrinho.length === 0) {
+        mostrarFeedback('vendas-feedback', 'Carrinho vazio. Adicione itens para finalizar a venda.', 'erro');
+        return;
+    }
+    
     try {
         const response = await fetch('http://127.0.0.1:5000/vendas/direta', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ codigo, quantidade, forma_pagamento: formaPagamento })
+            body: JSON.stringify({
+                carrinho: carrinho.map(item => ({
+                    codigo: item.codigo,
+                    quantidade: item.quantidade
+                })),
+                forma_pagamento: formaPagamento
+            })
         });
 
         const result = await response.json();
         if (response.ok) {
             mostrarFeedback('vendas-feedback', result.message, 'sucesso');
-            document.getElementById('form-venda-direta').reset();
+            carrinho = []; // Limpa o carrinho após a venda
+            renderizarCarrinho();
             carregarVendasDiarias();
             carregarEstoque();
         } else {
@@ -217,32 +310,15 @@ async function processarVendaDiretaAPI(codigo, quantidade, formaPagamento) {
     }
 }
 
-// Função principal para o formulário de venda direta
-async function handleVendaDiretaFormSubmission(event) {
-    event.preventDefault();
-    const codigo = document.getElementById('venda-direta-codigo').value;
-    const quantidade = parseInt(document.getElementById('venda-direta-quantidade').value);
+// Novo: Lógica para finalizar a venda com base na forma de pagamento
+function handleFinalizarVenda() {
     const formaPagamento = document.getElementById('venda-direta-pagamento').value;
+    const totalVenda = carrinho.reduce((acc, item) => acc + (item.quantidade * item.valor_unitario), 0);
 
     if (formaPagamento === 'Dinheiro') {
-        try {
-            const response = await fetch(`http://127.0.0.1:5000/estoque`);
-            const estoque = await response.json();
-            const produto = estoque[codigo];
-
-            if (produto) {
-                const valorTotal = produto.valor_unitario * quantidade;
-                const vendaData = { codigo, quantidade, formaPagamento };
-                abrirModalTroco(valorTotal, vendaData);
-            } else {
-                mostrarFeedback('vendas-feedback', 'Produto não encontrado no estoque para calcular o valor.', 'erro');
-            }
-        } catch (error) {
-            console.error('Erro ao buscar estoque:', error);
-            mostrarFeedback('vendas-feedback', 'Erro ao buscar dados do produto.', 'erro');
-        }
+        abrirModalTroco(totalVenda);
     } else {
-        processarVendaDiretaAPI(codigo, quantidade, formaPagamento);
+        processarVendaDiretaAPI(formaPagamento);
     }
 }
 
@@ -361,7 +437,11 @@ async function adicionarDespesa(event) {
 
 // Event Listeners para os formulários
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('form-venda-direta').addEventListener('submit', handleVendaDiretaFormSubmission);
+    // Evento para adicionar item ao carrinho, não mais para finalizar a venda
+    document.getElementById('form-venda-direta').addEventListener('submit', adicionarItemAoCarrinho);
+    // Novo: Evento para finalizar a venda a partir do botão
+    document.getElementById('finalizar-btn').addEventListener('click', handleFinalizarVenda);
+    
     document.getElementById('form-venda-delivery').addEventListener('submit', registrarVendaDelivery);
     document.getElementById('form-adicionar-produto').addEventListener('submit', adicionarProduto);
     document.getElementById('form-adicionar-receita').addEventListener('submit', adicionarReceita);

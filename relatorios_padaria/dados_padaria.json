@@ -136,8 +136,8 @@
             "id_transacao": "aeadbf7998d846ab89e4dcc6ed2dfb87",
             "codigo_produto": "000001",
             "quantidade": 3,
-            "descricao": "Venda de 3 und. de p\u00e3o de sal",
-            "valor": 1.7999999999999998,
+            "descricao": "Venda de 3 und. de p\u00e3o de sal - CANCELADA",
+            "valor": 0,
             "data": "03/09/2025 22:43:48",
             "tipo": "receita",
             "forma_pagamento": "Dinheiro"
@@ -151,6 +151,36 @@
             "data": "03/09/2025 22:44:09",
             "tipo": "receita",
             "plataforma_delivery": "iFood"
+        },
+        {
+            "id_transacao": "df8bd57d43364a66a7cc285f6f56b21a",
+            "codigo_produto": "000001",
+            "quantidade": 20,
+            "descricao": "Venda de 20 und. de p\u00e3o de sal",
+            "valor": 12.0,
+            "data": "03/09/2025 22:51:35",
+            "tipo": "receita",
+            "forma_pagamento": "Dinheiro"
+        },
+        {
+            "id_transacao": "dfb45ee8494d41568666ff8447237ee4",
+            "codigo_produto": "000001",
+            "quantidade": 8,
+            "descricao": "Venda de 8 und. de p\u00e3o de sal",
+            "valor": 4.8,
+            "data": "03/09/2025 22:52:10",
+            "tipo": "receita",
+            "forma_pagamento": "Cart\u00e3o de D\u00e9bito"
+        },
+        {
+            "id_transacao": "5085c5bd094b4db6a94cebc83a541faa",
+            "codigo_produto": "7891000329665",
+            "quantidade": 1,
+            "descricao": "Venda de 1 und. de suflair duo nestle",
+            "valor": 10.0,
+            "data": "03/09/2025 22:52:32",
+            "tipo": "receita",
+            "forma_pagamento": "Dinheiro"
         }
     ],
     "despesas": [
@@ -212,13 +242,13 @@
         },
         "7891000329665": {
             "descricao": "suflair duo nestle",
-            "quantidade": 2,
+            "quantidade": 1,
             "valor_unitario": 10.0,
             "categoria": "Doces"
         },
         "000001": {
             "descricao": "p\u00e3o de sal",
-            "quantidade": 89397,
+            "quantidade": 89372,
             "valor_unitario": 0.6,
             "categoria": "P\u00e3es"
         }

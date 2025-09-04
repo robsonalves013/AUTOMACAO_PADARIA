@@ -105,15 +105,39 @@
                 <form id="form-venda-direta">
                     <input type="text" id="venda-direta-codigo" placeholder="Código de Barras ou Número do Item" required>
                     <input type="number" id="venda-direta-quantidade" placeholder="Quantidade" required min="1">
-                    <select id="venda-direta-pagamento" required>
-                        <option value="">Selecione a Forma de Pagamento</option>
-                        <option value="Cartão de Débito">Cartão de Débito</option>
-                        <option value="Cartão de Crédito">Cartão de Crédito</option>
-                        <option value="Dinheiro">Dinheiro</option>
-                        <option value="Pix">Pix</option>
-                    </select>
-                    <button type="submit">Registrar Venda</button>
+                    <button type="submit" id="add-item-btn">Adicionar Item</button>
                 </form>
+
+                <div id="carrinho-container">
+                    <h4>Carrinho de Compras</h4>
+                    <table id="tabela-carrinho">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Qtd</th>
+                                <th>Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="2" class="total-label">Total:</td>
+                                <td id="carrinho-total">R$ 0,00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    <div id="finalizar-venda-container" style="display: none; text-align: center; margin-top: 15px;">
+                        <select id="venda-direta-pagamento" required>
+                            <option value="">Selecione a Forma de Pagamento</option>
+                            <option value="Cartão de Débito">Cartão de Débito</option>
+                            <option value="Cartão de Crédito">Cartão de Crédito</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                            <option value="Pix">Pix</option>
+                        </select>
+                        <button id="finalizar-btn" disabled>Finalizar Venda</button>
+                    </div>
+                </div>
             </div>
 
             <div class="form-container">

@@ -43,7 +43,7 @@ ASSINATURA = "Sistema desenvolvido por ROBSON ALVES"
 # --- Configurações do e-mail (ATUALIZAR COM SUAS INFORMAÇÕES) ---
 EMAIL_REMETENTE = 'robtechservice@outlook.com'
 SENHA_APP = 'ioohmnnkugrsulss'
-SENHA_MASTER = '120724'
+SENHA_MASTER = 'sua_senha_secreta_aqui'
 
 # ----------------------------------------
 # --- FUNÇÕES DE LÓGICA DO NEGÓCIO ---
@@ -143,8 +143,12 @@ def registrar_venda_direta(receitas, estoque):
     agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     receitas.append({
         'id_transacao': uuid.uuid4().hex,
-        'codigo_produto': codigo,
-        'quantidade': quantidade,
+        'itens': [{
+            'codigo_produto': codigo,
+            'quantidade': quantidade,
+            'valor_unitario': valor_unitario,
+            'descricao': estoque[codigo]['descricao']
+        }],
         'descricao': f"Venda de {quantidade} und. de {estoque[codigo]['descricao']}",
         'valor': valor_total,
         'data': agora,
@@ -176,8 +180,12 @@ def registrar_venda_delivery(receitas, estoque):
     agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     receitas.append({
         'id_transacao': uuid.uuid4().hex,
-        'codigo_produto': codigo,
-        'quantidade': quantidade,
+        'itens': [{
+            'codigo_produto': codigo,
+            'quantidade': quantidade,
+            'valor_unitario': estoque[codigo]['valor_unitario'],
+            'descricao': estoque[codigo]['descricao']
+        }],
         'descricao': f"Venda de {quantidade} und. de {estoque[codigo]['descricao']} (Delivery) - SEM VALOR",
         'valor': valor_total,
         'data': agora,
@@ -269,37 +277,57 @@ def add_produto():
 
 @app.route('/vendas/direta', methods=['POST'])
 def post_venda_direta():
-    """Endpoint para registrar uma venda direta via API."""
+    """
+    Endpoint para registrar uma venda direta com múltiplos itens via API.
+    O payload deve conter a lista de itens do carrinho.
+    """
     data = request.json
-    codigo = data.get('codigo')
-    quantidade = data.get('quantidade')
+    carrinho = data.get('carrinho')
     forma_pagamento = data.get('forma_pagamento')
 
-    if not all([codigo, quantidade, forma_pagamento]):
+    if not carrinho or not forma_pagamento:
         return jsonify({"error": "Dados de venda incompletos"}), 400
 
     receitas, despesas, estoque = carregar_dados()
-    if codigo not in estoque or estoque[codigo]['quantidade'] < quantidade:
-        return jsonify({"error": "Estoque insuficiente ou produto não encontrado"}), 400
+    valor_total = 0
+    itens_vendidos = []
 
-    valor_unitario = estoque[codigo]['valor_unitario']
-    estoque[codigo]['quantidade'] -= quantidade
-    valor_venda = quantidade * valor_unitario
+    # 1. Verifica o estoque de todos os itens antes de processar a venda
+    for item in carrinho:
+        codigo = item.get('codigo')
+        quantidade = item.get('quantidade')
+        
+        if codigo not in estoque or estoque[codigo]['quantidade'] < quantidade:
+            return jsonify({"error": f"Estoque insuficiente para o item {codigo} ou produto não encontrado."}), 400
+        
+        valor_unitario = estoque[codigo]['valor_unitario']
+        valor_total += quantidade * valor_unitario
+        itens_vendidos.append({
+            'codigo_produto': codigo,
+            'quantidade': quantidade,
+            'valor_unitario': valor_unitario,
+            'descricao': estoque[codigo]['descricao']
+        })
+
+    # 2. Processa a venda e atualiza o estoque e as receitas
+    for item in carrinho:
+        codigo = item.get('codigo')
+        quantidade = item.get('quantidade')
+        estoque[codigo]['quantidade'] -= quantidade
 
     agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     receitas.append({
         'id_transacao': uuid.uuid4().hex,
-        'codigo_produto': codigo,
-        'quantidade': quantidade,
-        'descricao': f"Venda de {quantidade} und. de {estoque[codigo]['descricao']}",
-        'valor': valor_venda,
+        'itens': itens_vendidos,
+        'descricao': f"Venda de múltiplos itens",
+        'valor': valor_total,
         'data': agora,
         'tipo': 'receita',
         'forma_pagamento': forma_pagamento
     })
 
     salvar_dados(receitas, despesas, estoque)
-    return jsonify({"message": "Venda direta registrada com sucesso!"})
+    return jsonify({"message": "Venda direta registrada com sucesso!", "valor_total": valor_total})
 
 @app.route('/vendas/delivery', methods=['POST'])
 def post_venda_delivery():
@@ -323,8 +351,12 @@ def post_venda_delivery():
     agora = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
     receitas.append({
         'id_transacao': uuid.uuid4().hex,
-        'codigo_produto': codigo,
-        'quantidade': quantidade,
+        'itens': [{
+            'codigo_produto': codigo,
+            'quantidade': quantidade,
+            'valor_unitario': estoque[codigo]['valor_unitario'],
+            'descricao': estoque[codigo]['descricao']
+        }],
         'descricao': f"Venda de {quantidade} und. de {estoque[codigo]['descricao']} (Delivery)",
         'valor': valor_total,
         'data': agora,
@@ -339,6 +371,7 @@ def post_venda_delivery():
 def post_venda_cancelar():
     """
     Endpoint para cancelar uma venda feita pela API, usando o ID de transação e uma senha master.
+    Agora lida com vendas de múltiplos itens.
     """
     data = request.json
     id_transacao = data.get('id_transacao')
@@ -365,18 +398,24 @@ def post_venda_cancelar():
         return jsonify({"error": "Esta venda já foi cancelada."}), 400
 
     try:
-        codigo_produto = venda_encontrada.get('codigo_produto')
-        quantidade = venda_encontrada.get('quantidade')
+        itens_vendidos = venda_encontrada.get('itens', [])
+        if not itens_vendidos:
+            return jsonify({"error": "Dados de itens da venda incompletos para cancelamento"}), 500
 
-        if codigo_produto in estoque and quantidade is not None:
-            estoque[codigo_produto]['quantidade'] += quantidade
-            # Altera a descrição para indicar que a venda foi cancelada, mantendo a original
-            venda_encontrada['descricao'] = f"{venda_encontrada.get('descricao')} - CANCELADA"
-            venda_encontrada['valor'] = 0
-            salvar_dados(receitas, despesas, estoque)
-            return jsonify({"message": f"Venda com ID {id_transacao} cancelada com sucesso. Estoque e dados atualizados."})
-        else:
-            return jsonify({"error": "Dados da venda incompletos para cancelamento"}), 500
+        # Restaura o estoque para todos os itens na venda
+        for item in itens_vendidos:
+            codigo_produto = item.get('codigo_produto')
+            quantidade = item.get('quantidade')
+            if codigo_produto in estoque and quantidade is not None:
+                estoque[codigo_produto]['quantidade'] += quantidade
+            else:
+                return jsonify({"error": f"Erro: Item {codigo_produto} não encontrado ou dados incompletos para restauração de estoque."}), 500
+            
+        # Altera a descrição e valor da venda para indicar que foi cancelada
+        venda_encontrada['descricao'] = f"{venda_encontrada.get('descricao')} - CANCELADA"
+        venda_encontrada['valor'] = 0
+        salvar_dados(receitas, despesas, estoque)
+        return jsonify({"message": f"Venda com ID {id_transacao} cancelada com sucesso. Estoque e dados atualizados."})
     except Exception as e:
         return jsonify({"error": f"Erro ao cancelar a venda: {e}"}), 500
 
