@@ -1,315 +1,266 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const apiURL = 'http://127.0.0.1:5000'; // Endereço da sua API
-    
-    // Variável para armazenar o estoque em memória
-    let produtosEmEstoque = {};
+// Função para exibir mensagens de feedback na interface
+function mostrarFeedback(containerId, mensagem, tipo) {
+    const container = document.getElementById(containerId);
+    container.textContent = mensagem;
+    container.className = `feedback-container ${tipo}`;
+    container.style.display = 'block';
+    setTimeout(() => {
+        container.style.display = 'none';
+    }, 5000);
+}
 
-    // Formulários e elementos existentes
-    const formAdicionarProduto = document.getElementById('form-adicionar-produto');
-    const tabelaEstoqueBody = document.querySelector('#tabela-estoque tbody');
+// Função para buscar e renderizar o estoque na tabela
+async function carregarEstoque() {
+    const tabelaEstoque = document.getElementById('tabela-estoque').getElementsByTagName('tbody')[0];
+    tabelaEstoque.innerHTML = ''; // Limpa a tabela antes de carregar
 
-    // Novos formulários
-    const formVendaDireta = document.getElementById('form-venda-direta');
-    const formVendaDelivery = document.getElementById('form-venda-delivery');
-    const formAdicionarReceita = document.getElementById('form-adicionar-receita');
-    const formAdicionarDespesa = document.getElementById('form-adicionar-despesa');
+    try {
+        const response = await fetch('http://127.0.0.1:5000/estoque');
+        const estoque = await response.json();
 
-    // Elementos de feedback
-    const vendasFeedback = document.getElementById('vendas-feedback');
-    const estoqueFeedback = document.getElementById('estoque-feedback');
-    const fluxoCaixaFeedback = document.getElementById('fluxo-caixa-feedback');
-
-    // Adicionado o novo elemento para vendas diárias
-    const tabelaVendasDiariasBody = document.querySelector('#tabela-vendas-diarias tbody');
-    const vendasDiariasFeedback = document.getElementById('vendas-diarias-feedback');
-
-    function showFeedback(element, message, isSuccess = true) {
-        element.textContent = message;
-        element.style.color = isSuccess ? 'green' : 'red';
-        setTimeout(() => {
-            element.textContent = '';
-        }, 5000); // A mensagem desaparece após 5 segundos
+        for (const codigo in estoque) {
+            const produto = estoque[codigo];
+            const linha = tabelaEstoque.insertRow();
+            linha.innerHTML = `
+                <td>${codigo}</td>
+                <td>${produto.descricao.charAt(0).toUpperCase() + produto.descricao.slice(1)}</td>
+                <td>${produto.quantidade}</td>
+                <td>R$ ${produto.valor_unitario.toFixed(2).replace('.', ',')}</td>
+                <td>${produto.categoria}</td>
+            `;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar estoque:', error);
+        mostrarFeedback('estoque-feedback', 'Erro ao carregar estoque.', 'erro');
     }
+}
 
-    // Função para carregar e exibir o estoque na tabela
-    async function carregarEstoque() {
-        try {
-            const response = await fetch(`${apiURL}/estoque`);
-            if (!response.ok) {
-                throw new Error('Erro ao carregar o estoque. Status: ' + response.status);
-            }
-            const estoque = await response.json();
-            produtosEmEstoque = estoque;
-            
-            tabelaEstoqueBody.innerHTML = '';
-            
-            for (const codigo in estoque) {
-                const produto = estoque[codigo];
-                const row = document.createElement('tr');
+// Função para buscar e renderizar as vendas diárias
+async function carregarVendasDiarias() {
+    const tabelaVendas = document.getElementById('tabela-vendas-diarias').getElementsByTagName('tbody')[0];
+    tabelaVendas.innerHTML = ''; // Limpa a tabela antes de carregar
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/vendas/diarias');
+        const vendas = await response.json();
+
+        if (vendas.length === 0) {
+            tabelaVendas.innerHTML = '<tr><td colspan="5">Nenhuma venda registrada hoje.</td></tr>';
+            return;
+        }
+
+        vendas.forEach(venda => {
+            const linha = tabelaVendas.insertRow();
+            // Salva o ID da transação no próprio elemento da linha
+            linha.dataset.id = venda.id_transacao; 
+            linha.innerHTML = `
+                <td>${venda.descricao}</td>
+                <td>R$ ${venda.valor.toFixed(2).replace('.', ',')}</td>
+                <td>${venda.forma_pagamento || venda.plataforma_delivery || 'Manual'}</td>
+                <td>${venda.data.split(' ')[1]}</td>
+                <td><button class="cancelar-btn" data-id="${venda.id_transacao}">Cancelar</button></td>
+            `;
+        });
+
+        // Adiciona o listener de evento para os botões de cancelar
+        document.querySelectorAll('.cancelar-btn').forEach(button => {
+            button.addEventListener('click', async (event) => {
+                const idTransacao = event.target.dataset.id;
+                const senha = prompt("Digite a senha master para cancelar a venda:");
                 
-                if (produto.quantidade <= 10) {
-                    row.classList.add('estoque-baixo');
+                if (senha) {
+                    await cancelarVenda(idTransacao, senha);
+                } else {
+                    mostrarFeedback('vendas-feedback', 'Cancelamento abortado.', 'aviso');
                 }
-                
-                row.innerHTML = `
-                    <td>${codigo}</td>
-                    <td>${produto.descricao}</td>
-                    <td>${produto.quantidade}</td>
-                    <td>R$ ${produto.valor_unitario.toFixed(2)}</td>
-                    <td>${produto.categoria}</td>
-                `;
-                tabelaEstoqueBody.appendChild(row);
-            }
-        } catch (error) {
-            console.error('Erro ao carregar o estoque:', error);
-            showFeedback(estoqueFeedback, 'Erro ao conectar com a API. Verifique se o servidor está rodando.', false);
-        }
-    }
+            });
+        });
 
-    // Função para carregar e exibir as vendas diárias
-    async function carregarVendasDiarias() {
-        try {
-            const response = await fetch(`${apiURL}/vendas/diarias`);
-            if (!response.ok) {
-                throw new Error('Erro ao carregar as vendas diárias. Status: ' + response.status);
-            }
-            const vendas = await response.json();
-            
-            tabelaVendasDiariasBody.innerHTML = '';
-            
-            if (vendas.length === 0) {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td colspan="4">Nenhuma venda registrada hoje.</td>`;
-                tabelaVendasDiariasBody.appendChild(row);
-            } else {
-                vendas.forEach(venda => {
-                    const row = document.createElement('tr');
-                    // Certifica-se de que a data está no formato correto para pegar a hora
-                    const horario = venda.data.includes(' ') ? venda.data.split(' ')[1] : '';
-                    row.innerHTML = `
-                        <td>${venda.descricao}</td>
-                        <td>R$ ${venda.valor.toFixed(2)}</td>
-                        <td>${venda.forma_pagamento}</td>
-                        <td>${horario}</td>
-                    `;
-                    tabelaVendasDiariasBody.appendChild(row);
-                });
-            }
-        } catch (error) {
-            console.error('Erro ao carregar as vendas diárias:', error);
-            showFeedback(vendasDiariasFeedback, 'Erro ao carregar as vendas. Verifique a conexão com a API.', false);
-        }
+    } catch (error) {
+        console.error('Erro ao carregar vendas diárias:', error);
+        mostrarFeedback('vendas-diarias-feedback', 'Erro ao carregar vendas diárias.', 'erro');
     }
+}
+
+// Função para cancelar uma venda
+async function cancelarVenda(id, senha) {
+    try {
+        const response = await fetch('http://127.0.0.1:5000/vendas/cancelar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id_transacao: id,
+                senha_master: senha
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            mostrarFeedback('vendas-feedback', result.message, 'sucesso');
+            carregarVendasDiarias(); // Atualiza a tabela de vendas
+            carregarEstoque(); // Atualiza a tabela de estoque
+        } else {
+            mostrarFeedback('vendas-feedback', `Erro: ${result.error}`, 'erro');
+        }
+    } catch (error) {
+        console.error('Erro ao cancelar a venda:', error);
+        mostrarFeedback('vendas-feedback', 'Erro ao se conectar com a API.', 'erro');
+    }
+}
+
+// --- Funções para registrar formulários ---
+
+async function registrarVendaDireta(event) {
+    event.preventDefault();
+    const codigo = document.getElementById('venda-direta-codigo').value;
+    const quantidade = parseInt(document.getElementById('venda-direta-quantidade').value);
+    const formaPagamento = document.getElementById('venda-direta-pagamento').value;
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/vendas/direta', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codigo, quantidade, forma_pagamento: formaPagamento })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            mostrarFeedback('vendas-feedback', result.message, 'sucesso');
+            document.getElementById('form-venda-direta').reset();
+            carregarVendasDiarias();
+            carregarEstoque();
+        } else {
+            mostrarFeedback('vendas-feedback', `Erro: ${result.error}`, 'erro');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarFeedback('vendas-feedback', 'Erro ao conectar com a API.', 'erro');
+    }
+}
+
+async function registrarVendaDelivery(event) {
+    event.preventDefault();
+    const codigo = document.getElementById('venda-delivery-codigo').value;
+    const quantidade = parseInt(document.getElementById('venda-delivery-quantidade').value);
+    const plataforma = document.getElementById('venda-delivery-plataforma').value;
+
+    try {
+        const response = await fetch('http://127.0.0.1:5000/vendas/delivery', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codigo, quantidade, plataforma })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            mostrarFeedback('vendas-feedback', result.message, 'sucesso');
+            document.getElementById('form-venda-delivery').reset();
+            carregarVendasDiarias();
+            carregarEstoque();
+        } else {
+            mostrarFeedback('vendas-feedback', `Erro: ${result.error}`, 'erro');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarFeedback('vendas-feedback', 'Erro ao conectar com a API.', 'erro');
+    }
+}
+
+async function adicionarProduto(event) {
+    event.preventDefault();
+    const codigo = document.getElementById('add-codigo').value;
+    const descricao = document.getElementById('add-descricao').value;
+    const quantidade = parseInt(document.getElementById('add-quantidade').value);
+    const valorUnitario = parseFloat(document.getElementById('add-valor').value);
+    const categoria = document.getElementById('add-categoria').value;
     
-    // Adicionar novo produto
-    formAdicionarProduto.addEventListener('submit', async (event) => {
-        event.preventDefault();
+    try {
+        const response = await fetch('http://127.0.0.1:5000/estoque/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                codigo,
+                descricao,
+                quantidade,
+                valor_unitario: valorUnitario,
+                categoria
+            })
+        });
 
-        const codigo = document.getElementById('add-codigo').value;
-        const descricao = document.getElementById('add-descricao').value;
-        const quantidade = parseInt(document.getElementById('add-quantidade').value);
-        const valorUnitario = parseFloat(document.getElementById('add-valor').value);
-        const categoria = document.getElementById('add-categoria').value;
-
-        const produtoData = {
-            codigo,
-            descricao,
-            quantidade,
-            valor_unitario: valorUnitario,
-            categoria
-        };
-
-        try {
-            const response = await fetch(`${apiURL}/estoque/add`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(produtoData),
-            });
-            const result = await response.json();
-            
-            if (response.ok) {
-                showFeedback(estoqueFeedback, result.message, true);
-                carregarEstoque();
-                formAdicionarProduto.reset();
-            } else {
-                showFeedback(estoqueFeedback, result.error, false);
-            }
-        } catch (error) {
-            console.error('Erro ao adicionar produto:', error);
-            showFeedback(estoqueFeedback, 'Erro ao conectar com a API ou dados inválidos.', false);
+        const result = await response.json();
+        if (response.ok) {
+            mostrarFeedback('estoque-feedback', result.message, 'sucesso');
+            document.getElementById('form-adicionar-produto').reset();
+            carregarEstoque();
+        } else {
+            mostrarFeedback('estoque-feedback', `Erro: ${result.error}`, 'erro');
         }
-    });
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarFeedback('estoque-feedback', 'Erro ao conectar com a API.', 'erro');
+    }
+}
 
-    // Venda Direta
-    formVendaDireta.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        
-        const codigo = document.getElementById('venda-direta-codigo').value;
-        const quantidade = parseInt(document.getElementById('venda-direta-quantidade').value);
-        const formaPagamento = document.getElementById('venda-direta-pagamento').value;
+async function adicionarReceita(event) {
+    event.preventDefault();
+    const descricao = document.getElementById('receita-descricao').value;
+    const valor = parseFloat(document.getElementById('receita-valor').value);
 
-        // **INÍCIO DA LÓGICA DO TROCO**
-        if (formaPagamento === 'Dinheiro') {
-            const produto = produtosEmEstoque[codigo];
-            if (!produto) {
-                showFeedback(vendasFeedback, 'Erro: Produto não encontrado no estoque.', false);
-                return;
-            }
-            
-            const valorTotal = produto.valor_unitario * quantidade;
-            const valorRecebidoInput = prompt(`Valor total da venda: R$ ${valorTotal.toFixed(2)}\n\nQuanto o cliente pagou?`);
+    try {
+        const response = await fetch('http://127.0.0.1:5000/fluxo_caixa/receita', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ descricao, valor })
+        });
 
-            const valorRecebido = parseFloat(valorRecebidoInput);
-            if (isNaN(valorRecebido) || valorRecebido < valorTotal) {
-                alert('Valor recebido inválido ou insuficiente.');
-                return;
-            }
-
-            const troco = valorRecebido - valorTotal;
-            alert(`Troco a ser devolvido: R$ ${troco.toFixed(2)}`);
+        const result = await response.json();
+        if (response.ok) {
+            mostrarFeedback('fluxo-caixa-feedback', result.message, 'sucesso');
+            document.getElementById('form-adicionar-receita').reset();
+        } else {
+            mostrarFeedback('fluxo-caixa-feedback', `Erro: ${result.error}`, 'erro');
         }
-        // **FIM DA LÓGICA DO TROCO**
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarFeedback('fluxo-caixa-feedback', 'Erro ao conectar com a API.', 'erro');
+    }
+}
 
-        const vendaData = {
-            codigo,
-            quantidade,
-            forma_pagamento: formaPagamento
-        };
+async function adicionarDespesa(event) {
+    event.preventDefault();
+    const descricao = document.getElementById('despesa-descricao').value;
+    const valor = parseFloat(document.getElementById('despesa-valor').value);
 
-        try {
-            const response = await fetch(`${apiURL}/vendas/direta`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(vendaData),
-            });
-            const result = await response.json();
-            
-            if (response.ok) {
-                showFeedback(vendasFeedback, result.message, true);
-                carregarEstoque();
-                carregarVendasDiarias(); // Atualiza a tabela de vendas
-                formVendaDireta.reset();
-            } else {
-                showFeedback(vendasFeedback, result.error, false);
-            }
-        } catch (error) {
-            console.error('Erro ao registrar venda:', error);
-            showFeedback(vendasFeedback, 'Erro ao conectar com a API ou dados inválidos.', false);
+    try {
+        const response = await fetch('http://127.0.0.1:5000/fluxo_caixa/despesa', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ descricao, valor })
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+            mostrarFeedback('fluxo-caixa-feedback', result.message, 'sucesso');
+            document.getElementById('form-adicionar-despesa').reset();
+        } else {
+            mostrarFeedback('fluxo-caixa-feedback', `Erro: ${result.error}`, 'erro');
         }
-    });
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarFeedback('fluxo-caixa-feedback', 'Erro ao conectar com a API.', 'erro');
+    }
+}
 
-    // Venda Delivery
-    formVendaDelivery.addEventListener('submit', async (event) => {
-        event.preventDefault();
+// Event Listeners para os formulários
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('form-venda-direta').addEventListener('submit', registrarVendaDireta);
+    document.getElementById('form-venda-delivery').addEventListener('submit', registrarVendaDelivery);
+    document.getElementById('form-adicionar-produto').addEventListener('submit', adicionarProduto);
+    document.getElementById('form-adicionar-receita').addEventListener('submit', adicionarReceita);
+    document.getElementById('form-adicionar-despesa').addEventListener('submit', adicionarDespesa);
 
-        const codigo = document.getElementById('venda-delivery-codigo').value;
-        const quantidade = parseInt(document.getElementById('venda-delivery-quantidade').value);
-        const plataforma = document.getElementById('venda-delivery-plataforma').value;
-
-        const vendaData = {
-            codigo,
-            quantidade,
-            plataforma
-        };
-
-        try {
-            const response = await fetch(`${apiURL}/vendas/delivery`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(vendaData),
-            });
-            const result = await response.json();
-            
-            if (response.ok) {
-                showFeedback(vendasFeedback, result.message, true);
-                carregarEstoque();
-                carregarVendasDiarias(); // Atualiza a tabela de vendas
-                formVendaDelivery.reset();
-            } else {
-                showFeedback(vendasFeedback, result.error, false);
-            }
-        } catch (error) {
-            console.error('Erro ao registrar venda:', error);
-            showFeedback(vendasFeedback, 'Erro ao conectar com a API ou dados inválidos.', false);
-        }
-    });
-
-    // Adicionar Receita Manual
-    formAdicionarReceita.addEventListener('submit', async (event) => {
-        event.preventDefault();
-
-        const descricao = document.getElementById('receita-descricao').value;
-        const valor = parseFloat(document.getElementById('receita-valor').value);
-
-        const receitaData = {
-            descricao,
-            valor
-        };
-
-        try {
-            const response = await fetch(`${apiURL}/fluxo_caixa/receita`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(receitaData),
-            });
-            const result = await response.json();
-            
-            if (response.ok) {
-                showFeedback(fluxoCaixaFeedback, result.message, true);
-                carregarVendasDiarias(); // Atualiza a tabela de vendas
-                formAdicionarReceita.reset();
-            } else {
-                showFeedback(fluxoCaixaFeedback, result.error, false);
-            }
-        } catch (error) {
-            console.error('Erro ao adicionar receita:', error);
-            showFeedback(fluxoCaixaFeedback, 'Erro ao conectar com a API ou dados inválidos.', false);
-        }
-    });
-
-    // Adicionar Despesa
-    formAdicionarDespesa.addEventListener('submit', async (event) => {
-        event.preventDefault();
-
-        const descricao = document.getElementById('despesa-descricao').value;
-        const valor = parseFloat(document.getElementById('despesa-valor').value);
-
-        const despesaData = {
-            descricao,
-            valor
-        };
-
-        try {
-            const response = await fetch(`${apiURL}/fluxo_caixa/despesa`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(despesaData),
-            });
-            const result = await response.json();
-            
-            if (response.ok) {
-                showFeedback(fluxoCaixaFeedback, result.message, true);
-                formAdicionarDespesa.reset();
-            } else {
-                showFeedback(fluxoCaixaFeedback, result.error, false);
-            }
-        } catch (error) {
-            console.error('Erro ao adicionar despesa:', error);
-            showFeedback(fluxoCaixaFeedback, 'Erro ao conectar com a API ou dados inválidos.', false);
-        }
-    });
-
-    // Chama as funções para carregar os dados iniciais
-    carregarEstoque();
+    // Carrega os dados iniciais
     carregarVendasDiarias();
+    carregarEstoque();
 });
